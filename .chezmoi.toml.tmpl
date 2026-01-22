@@ -1,0 +1,21 @@
+{{- /* chezmoi configuration template */ -}}
+{{- /* This runs ONCE when you first set up chezmoi on a new machine */ -}}
+
+{{- /* Detect the operating system automatically */ -}}
+{{- $osid := .chezmoi.os -}}
+{{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "idLike")) -}}
+{{-   if contains "debian" .chezmoi.osRelease.idLike -}}
+{{-     $osid = "debian" -}}
+{{-   end -}}
+{{- end -}}
+
+encryption = "age"
+
+[data]
+    name = "Daniele Alpago"
+    email = "dalpago@swissblock.net"
+    osid = {{ $osid | quote }}
+
+[age]
+    identity = "~/.config/chezmoi/key.txt"
+    recipient = "age1hj44zw65hmez39uc7vwusw90j4sv3426djt6kyqs4ylfunm83yksm6awr7"

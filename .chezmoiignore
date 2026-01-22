@@ -1,0 +1,27 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# chezmoi Ignore Rules
+# ═══════════════════════════════════════════════════════════════════════════════
+# Files listed here will NOT be managed by chezmoi.
+# Supports templates: you can ignore files based on OS.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Always ignore
+README.md
+LICENSE
+
+# Ignore SSH private keys - these are generated per machine, not synced
+.ssh/github-personal
+.ssh/github-work
+.ssh/csi-data
+.ssh/known_hosts
+.ssh/known_hosts.old
+
+# macOS-only files - ignore on Linux
+{{ if ne .chezmoi.os "darwin" }}
+Library/
+{{ end }}
+
+# Linux-only files - ignore on macOS
+{{ if ne .chezmoi.os "linux" }}
+.config/systemd/
+{{ end }}

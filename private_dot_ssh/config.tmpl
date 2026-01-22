@@ -1,0 +1,65 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SSH Configuration - Managed by chezmoi
+# ═══════════════════════════════════════════════════════════════════════════════
+# This file configures SSH to use the correct key for each service.
+# The "private_" prefix in chezmoi ensures correct 600 permissions.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Global Defaults
+# ─────────────────────────────────────────────────────────────────────────────────
+Host *
+    # Only use explicitly configured keys (don't try all keys)
+    IdentitiesOnly yes
+
+    # Add keys to agent automatically
+    AddKeysToAgent yes
+
+{{- if eq .chezmoi.os "darwin" }}
+    # macOS: Store passphrases in Keychain
+    UseKeychain yes
+{{- end }}
+
+    # Security: Use strong algorithms only
+    HostKeyAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
+    # Keep connections alive
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# GitHub - Personal Account (dalpago)
+# ─────────────────────────────────────────────────────────────────────────────────
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/github-personal
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# GitHub - Work Account (dalpago-sbt)
+# ─────────────────────────────────────────────────────────────────────────────────
+# Use this host alias for work repositories:
+#   git clone github-work:dalpago-sbt/repo-name.git
+#   git remote set-url origin github-work:dalpago-sbt/repo-name.git
+Host github-work
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/github-work
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# CSI Data Server
+# ─────────────────────────────────────────────────────────────────────────────────
+Host ftp.csidata.com
+    HostName ftp.csidata.com
+    IdentityFile ~/.ssh/csi-data
+    # Add your username if different from local:
+    # User your_csi_username
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Example: Add more hosts below
+# ─────────────────────────────────────────────────────────────────────────────────
+# Host my-server
+#     HostName server.example.com
+#     User myusername
+#     IdentityFile ~/.ssh/my-server-key
+#     Port 22

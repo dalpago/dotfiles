@@ -1,0 +1,65 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Global Git Ignore - Managed by chezmoi
+# ═══════════════════════════════════════════════════════════════════════════════
+# These patterns are ignored in ALL repositories on this machine.
+# For project-specific ignores, use .gitignore in the project root.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Operating System
+# ─────────────────────────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Editors & IDEs
+# ─────────────────────────────────────────────────────────────────────────────────
+# JetBrains (PyCharm, IntelliJ, DataGrip, etc.)
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+.#*
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Secrets & Credentials (NEVER commit these!)
+# ─────────────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.json
+.secrets
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Syncthing
+# ─────────────────────────────────────────────────────────────────────────────────
+.stfolder/
+.stignore
+.stversions/

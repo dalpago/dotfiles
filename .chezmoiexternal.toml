@@ -1,0 +1,13 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# chezmoi External Dependencies
+# ═══════════════════════════════════════════════════════════════════════════════
+# These are downloaded automatically when you run `chezmoi apply` on a new machine.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Oh My Zsh - automatically installed to ~/.oh-my-zsh
+[".oh-my-zsh"]
+    type = "git-repo"
+    url = "https://github.com/ohmyzsh/ohmyzsh.git"
+    refreshPeriod = "168h"  # Check for updates weekly
+    [".oh-my-zsh".pull]
+        args = ["--ff-only"]  # Only fast-forward updates

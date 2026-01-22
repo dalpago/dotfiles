@@ -1,0 +1,162 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Git Configuration - Managed by chezmoi
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# User Identity (Work - dalpago-sbt)
+# ─────────────────────────────────────────────────────────────────────────────────
+[user]
+    name = Daniele Alpago
+    email = dalpago@swissblock.net
+    signingkey = ~/.ssh/github-work
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Core Settings
+# ─────────────────────────────────────────────────────────────────────────────────
+[core]
+    editor = nano
+    autocrlf = false
+    excludesFile = ~/.gitignore-global
+    pager = delta --pager=less 2>/dev/null || less
+
+[init]
+    defaultBranch = main
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Commit Signing (using SSH keys)
+# ─────────────────────────────────────────────────────────────────────────────────
+[gpg]
+    format = ssh
+
+[commit]
+    gpgSign = true
+    verbose = true
+
+[tag]
+    gpgSign = true
+    sort = version:refname
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Branch & Merge Settings
+# ─────────────────────────────────────────────────────────────────────────────────
+[branch]
+    autosetuprebase = always
+    sort = -committerdate
+
+[pull]
+    rebase = true
+
+[push]
+    default = current
+    autoSetupRemote = true
+    followTags = true
+
+[rebase]
+    autoSquash = true
+    autoStash = true
+    updateRefs = true
+
+[merge]
+    conflictstyle = diff3
+
+[rerere]
+    enabled = true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Fetch & Remote Settings
+# ─────────────────────────────────────────────────────────────────────────────────
+[fetch]
+    prune = true
+    pruneTags = true
+    all = true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Diff Settings
+# ─────────────────────────────────────────────────────────────────────────────────
+[diff]
+    algorithm = histogram
+    colorMoved = plain
+    mnemonicPrefix = true
+    renames = true
+
+[delta]
+    features = side-by-side line-numbers decorations
+    navigate = true
+    side-by-side = true
+    line-numbers = true
+    light = false
+    syntax-theme = Monokai Extended
+
+[interactive]
+    diffFilter = delta --color-only
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Status & Display
+# ─────────────────────────────────────────────────────────────────────────────────
+[color]
+    ui = auto
+
+[status]
+    showUntrackedFiles = all
+    short = true
+
+[advice]
+    statusHints = false
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# Useful Aliases
+# ─────────────────────────────────────────────────────────────────────────────────
+[alias]
+    # Status & Info
+    s = status --short
+    st = status
+
+    # Branches
+    br = branch
+    co = checkout
+    sw = switch
+
+    # Commits
+    ci = commit
+    ca = commit --amend
+    can = commit --amend --no-edit
+    wip = commit -am 'wip'
+
+    # Diffs
+    di = diff
+    dic = diff --cached
+    dif = diff --stat
+
+    # Logging
+    lg = log --graph --date=relative --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%an %ad)%Creset'
+    lg1 = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    l10 = log --oneline -10
+
+    # Push/Pull
+    pl = pull
+    pu = push
+    puf = push --force-with-lease
+
+    # Staging
+    a = add -u
+    aa = add --all
+    unadd = restore --staged
+    uncommit = reset --soft HEAD~1
+
+    # Rebase
+    rb = rebase
+    rbi = rebase -i
+    rba = rebase --abort
+    rbc = rebase --continue
+
+    # Stash
+    stl = stash list
+    stp = stash pop
+    sts = stash show -p
+
+    # Cleanup
+    prune-remote = remote prune origin
+    gone = "!git fetch -p && git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D"
+
+[credential]
+    helper = cache --timeout=3600
