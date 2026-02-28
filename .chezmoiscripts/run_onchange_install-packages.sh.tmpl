@@ -1,0 +1,107 @@
+#!/bin/bash
+# packages.yaml hash: {{ include ".chezmoidata/packages.yaml" | sha256sum }}
+set -euo pipefail
+
+{{ if eq .osid "darwin" -}}
+# ===========================================================================
+# macOS — Homebrew
+# ===========================================================================
+
+if ! command -v brew &>/dev/null; then
+    echo "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+echo "Installing Homebrew packages..."
+brew bundle --file=/dev/stdin <<BREWEOF
+{{ range .packages.darwin.brews -}}
+brew "{{ . }}"
+{{ end -}}
+{{ range .packages.darwin.casks -}}
+cask "{{ . }}"
+{{ end -}}
+BREWEOF
+
+{{ else if eq .osid "debian" -}}
+# ===========================================================================
+# Debian / Ubuntu / WSL — apt + manual installs
+# ===========================================================================
+
+echo "Updating apt package index..."
+sudo apt update -y
+
+echo "Installing apt packages..."
+sudo apt install -y \
+{{ range .packages.debian.apt -}}
+    {{ . }} \
+{{ end }}
+    ;
+
+# --- Manual installs for tools not in standard apt repos ---
+
+# zoxide
+if ! command -v zoxide &>/dev/null; then
+    echo "Installing zoxide..."
+    curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+fi
+
+# eza
+if ! command -v eza &>/dev/null; then
+    echo "Installing eza..."
+    sudo mkdir -p /etc/apt/keyrings
+    wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
+    sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
+    sudo apt update -y
+    sudo apt install -y eza
+fi
+
+# git-delta
+if ! command -v delta &>/dev/null; then
+    echo "Installing git-delta..."
+    DELTA_VERSION=$(curl -sSf https://api.github.com/repos/dandavison/delta/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
+    ARCH=$(dpkg --print-architecture)
+    curl -sSfLO "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${ARCH}.deb"
+    sudo dpkg -i "git-delta_${DELTA_VERSION}_${ARCH}.deb"
+    rm -f "git-delta_${DELTA_VERSION}_${ARCH}.deb"
+fi
+
+# age
+if ! command -v age &>/dev/null; then
+    echo "Installing age..."
+    sudo apt install -y age 2>/dev/null || {
+        AGE_VERSION=$(curl -sSf https://api.github.com/repos/FiloSottile/age/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
+        ARCH=$(dpkg --print-architecture)
+        curl -sSfLO "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-${ARCH}.tar.gz"
+        sudo tar -xzf "age-${AGE_VERSION}-linux-${ARCH}.tar.gz" -C /usr/local/bin --strip-components=1 age/age age/age-keygen
+        rm -f "age-${AGE_VERSION}-linux-${ARCH}.tar.gz"
+    }
+fi
+
+# pipx packages
+echo "Installing pipx packages..."
+{{ range .packages.debian.pipx -}}
+pipx install {{ . }} || true
+{{ end }}
+
+# Node.js via NodeSource LTS (needed for npm packages)
+if ! command -v node &>/dev/null; then
+    echo "Installing Node.js LTS..."
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    sudo apt install -y nodejs
+fi
+
+{{ end -}}
+
+# ===========================================================================
+# Cross-platform — npm global packages
+# ===========================================================================
+
+if command -v npm &>/dev/null; then
+    echo "Installing npm global packages..."
+    {{ range .packages.npm -}}
+    if ! npm list -g "{{ . }}" &>/dev/null; then
+        npm install -g "{{ . }}"
+    fi
+    {{ end -}}
+fi

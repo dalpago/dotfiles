@@ -1,0 +1,71 @@
+packages:
+  darwin:
+    brews:
+      - age
+      - bat
+      - chezmoi
+      - eza
+      - fd
+      - fzf
+      - git
+      - git-delta
+      - git-extras
+      - git-filter-repo
+      - gnupg
+      - htop
+      - mosh
+      - mypy
+      - mysql-client
+      - pandoc
+      - pass
+      - pipx
+      - poetry
+      - python@3.12
+      - python@3.13
+      - ripgrep
+      - sqlite
+      - tmux
+      - vim
+      - wireguard-go
+      - wireguard-tools
+      - zoxide
+      - zsh
+      - zsh-autosuggestions
+      - zsh-syntax-highlighting
+    casks:
+      - ferdium
+      - iterm2
+      - libreoffice
+      - microsoft-teams
+      - pycharm
+
+  debian:
+    apt:
+      - bat
+      - fd-find
+      - fzf
+      - git
+      - git-extras
+      - gnupg
+      - htop
+      - mosh
+      - pass
+      - pipx
+      - python3
+      - python3-pip
+      - python3-venv
+      - ripgrep
+      - sqlite3
+      - texlive-latex-base
+      - texlive-latex-extra
+      - tmux
+      - vim
+      - zsh
+      - zsh-autosuggestions
+      - zsh-syntax-highlighting
+    pipx:
+      - poetry
+      - mypy
+
+  npm:
+    - "@mermaid-js/mermaid-cli"

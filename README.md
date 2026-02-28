@@ -32,8 +32,10 @@ mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
 # The key starts with: AGE-SECRET-KEY-...
 
-# 4. Re-apply to decrypt secrets
+# 4. Re-apply to decrypt secrets and install all packages
 chezmoi apply
+# This automatically installs all Homebrew formulae, casks, and npm packages
+# defined in .chezmoidata/packages.yaml
 
 # 5. Generate SSH keys (if not copying from another machine)
 ssh-keygen -t ed25519 -C "daniele.alpago3@gmail.com" -f ~/.ssh/github-personal
@@ -68,8 +70,11 @@ sudo apt install -y zsh git curl
 mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
 
-# 6. Re-apply to decrypt secrets
+# 6. Re-apply to decrypt secrets and install all packages
 chezmoi apply
+# This automatically installs all apt packages, manual tools (zoxide, eza,
+# git-delta, age), pipx packages, Node.js, and npm packages
+# defined in .chezmoidata/packages.yaml
 
 # 7. Set zsh as default shell
 chsh -s $(which zsh)
@@ -93,7 +98,7 @@ cat ~/.ssh/github-work.pub
 
 ## Daily Workflow
 
-### macOS
+### Editing Dotfiles
 
 ```bash
 # Edit a dotfile (opens in editor, updates chezmoi source)
@@ -109,14 +114,15 @@ chezmoi apply
 chezmoi cd && git add -A && git commit -m "Update dotfiles" && git push
 ```
 
-### WSL Ubuntu
+### Managing Packages
 
 ```bash
-# Same workflow as macOS!
-chezmoi edit ~/.zshrc
-chezmoi diff
-chezmoi apply
-chezmoi cd && git add -A && git commit -m "Update dotfiles" && git push
+# Add or remove packages by editing the manifest
+chezmoi edit --apply ~/.local/share/chezmoi/.chezmoidata/packages.yaml
+
+# Or edit directly and apply
+vim ~/.local/share/chezmoi/.chezmoidata/packages.yaml
+chezmoi apply   # Automatically re-runs the install script (hash changed)
 ```
 
 ### Pulling Changes (from another machine)
@@ -149,8 +155,12 @@ chezmoi update
 ```
 ~/.local/share/chezmoi/           # chezmoi source directory
 ├── .chezmoi.toml.tmpl            # Machine-specific config template
-├── .chezmoiexternal.toml         # External dependencies (oh-my-zsh)
+├── .chezmoidata/
+│   └── packages.yaml             # Declarative package manifest (macOS + Linux + npm)
+├── .chezmoiexternal.toml         # External dependencies (oh-my-zsh, claude-config)
 ├── .chezmoiignore                # Files to ignore per OS
+├── .chezmoiscripts/
+│   └── run_onchange_install-packages.sh.tmpl  # Auto-installs packages on apply
 ├── dot_zshrc.tmpl                # ~/.zshrc template
 ├── dot_gitconfig.tmpl            # ~/.gitconfig template
 ├── dot_gitignore-global          # ~/.gitignore-global

@@ -11,3 +11,11 @@
     refreshPeriod = "168h"  # Check for updates weekly
     [".oh-my-zsh".pull]
         args = ["--ff-only"]  # Only fast-forward updates
+
+# Claude Code
+[".claude"]
+    type = "git-repo"
+    url = "https://git.mirus-tech.com/jmz/claude-config.git"
+    refreshPeriod = "168h"
+    exact = false
+    exclude = [".git/**", "docs/**", "scripts/**", ".gitignore", "LICENSE", "README.md"]
