@@ -1,0 +1,7 @@
+--theme="Catppuccin Mocha"
+--tabs=4
+--style=numbers,changes,header
+--italic-text=always
+--map-syntax="*.conf:INI"
+--map-syntax=".gitignore:Git Ignore"
+--map-syntax="*.tmpl:Bash"

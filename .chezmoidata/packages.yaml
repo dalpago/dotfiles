@@ -1,71 +1,103 @@
-packages:
+base:
   darwin:
     brews:
       - age
-      - bat
       - chezmoi
-      - eza
-      - fd
       - fzf
       - git
       - git-delta
-      - git-extras
-      - git-filter-repo
       - gnupg
-      - htop
-      - mosh
-      - mypy
-      - mysql-client
-      - pandoc
-      - pass
-      - pipx
-      - poetry
-      - python@3.12
-      - python@3.13
-      - ripgrep
-      - sqlite
-      - tmux
+      - starship
+      - uv
       - vim
-      - wireguard-go
-      - wireguard-tools
       - zoxide
       - zsh
-      - zsh-autosuggestions
-      - zsh-syntax-highlighting
     casks:
-      - ferdium
       - iterm2
-      - libreoffice
-      - microsoft-teams
-      - pycharm
 
   debian:
     apt:
-      - bat
-      - fd-find
+      - age
       - fzf
       - git
-      - git-extras
       - gnupg
-      - htop
-      - mosh
-      - pass
-      - pipx
-      - python3
-      - python3-pip
-      - python3-venv
-      - ripgrep
-      - sqlite3
-      - texlive-latex-base
-      - texlive-latex-extra
-      - tmux
       - vim
       - zsh
-      - zsh-autosuggestions
-      - zsh-syntax-highlighting
-    pipx:
-      - poetry
-      - mypy
 
-  npm:
-    - "@mermaid-js/mermaid-cli"
+categories:
+  development:
+    darwin:
+      brews:
+        - git-extras
+        - git-filter-repo
+        - node
+        - python@3.13
+        - sqlite
+    debian:
+      apt:
+        - git-extras
+        - python3
+        - python3-pip
+        - python3-venv
+        - sqlite3
+    npm: []
+
+  cli-tools:
+    darwin:
+      brews:
+        - bat
+        - eza
+        - fd
+        - htop
+        - mosh
+        - pandoc
+        - ripgrep
+        - tmux
+    debian:
+      apt:
+        - bat
+        - fd-find
+        - htop
+        - mosh
+        - ripgrep
+        - tmux
+    npm:
+      - "@mermaid-js/mermaid-cli"
+
+  security:
+    darwin:
+      brews:
+        - pass
+        - wireguard-go
+        - wireguard-tools
+    debian:
+      apt:
+        - pass
+    npm: []
+
+  desktop-apps:
+    darwin:
+      casks:
+        - ferdium
+        - libreoffice
+    debian:
+      apt: []
+    npm: []
+
+  work:
+    darwin:
+      brews:
+        - mysql-client
+      casks:
+        - microsoft-teams
+        - pycharm
+    debian:
+      apt:
+        - texlive-latex-base
+        - texlive-latex-extra
+    npm: []
+
+uv_python:
+  packages:
+    - requests
+    - pyyaml

@@ -1,0 +1,61 @@
+# ===========================================================================
+# chezmoi External Dependencies
+# ===========================================================================
+
+# Oh My Zsh
+[".oh-my-zsh"]
+    type = "archive"
+    url = "https://github.com/ohmyzsh/ohmyzsh/archive/refs/heads/master.tar.gz"
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+# zsh-autosuggestions
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-autosuggestions/archive/refs/heads/master.tar.gz"
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+# zsh-syntax-highlighting
+[".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-syntax-highlighting/archive/refs/heads/master.tar.gz"
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+# zsh-completions
+[".oh-my-zsh/custom/plugins/zsh-completions"]
+    type = "archive"
+    url = "https://github.com/zsh-users/zsh-completions/archive/refs/heads/master.tar.gz"
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+# fzf-tab
+[".oh-my-zsh/custom/plugins/fzf-tab"]
+    type = "archive"
+    url = "https://github.com/Aloxaf/fzf-tab/archive/refs/heads/master.tar.gz"
+    stripComponents = 1
+    refreshPeriod = "168h"
+
+# Claude Code config from mirus-tech
+[".claude"]
+    type = "git-repo"
+    url = "https://git.mirus-tech.com/jmz/claude-config.git"
+    refreshPeriod = "168h"
+    exact = false
+    exclude = [
+        ".git/**",
+        "docs/**",
+        "scripts/**",
+        ".gitignore",
+        "LICENSE",
+        "README.md",
+        "settings.json",
+        "mcp-servers.json",
+    ]
+
+# Private overlay externals (optional)
+{{- $localExternal := joinPath .chezmoi.sourceDir ".local/.chezmoiexternal.local.toml" -}}
+{{- if stat $localExternal }}
+{{ include $localExternal }}
+{{- end }}

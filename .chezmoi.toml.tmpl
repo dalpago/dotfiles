@@ -1,6 +1,20 @@
 {{- /* chezmoi configuration template */ -}}
 {{- /* This runs ONCE when you first set up chezmoi on a new machine */ -}}
 
+{{- /* Load private overlay config if it exists */ -}}
+{{- $localConfig := joinPath .chezmoi.sourceDir ".local/.chezmoi.toml.local" -}}
+{{- $ageIdentity := "~/.config/chezmoi/key.txt" -}}
+{{- $ageRecipient := "age1hj44zw65hmez39uc7vwusw90j4sv3426djt6kyqs4ylfunm83yksm6awr7" -}}
+{{- if stat $localConfig -}}
+{{-   $localData := include $localConfig | fromToml -}}
+{{-   if hasKey $localData "age_identity" -}}
+{{-     $ageIdentity = $localData.age_identity -}}
+{{-   end -}}
+{{-   if hasKey $localData "age_recipient" -}}
+{{-     $ageRecipient = $localData.age_recipient -}}
+{{-   end -}}
+{{- end -}}
+
 {{- /* Detect the operating system automatically */ -}}
 {{- $osid := .chezmoi.os -}}
 {{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "idLike")) -}}
@@ -9,13 +23,30 @@
 {{-   end -}}
 {{- end -}}
 
+{{- /* Prompt for profile: "work" or "personal" */ -}}
+{{- $profile := promptStringOnce . "profile" "Profile (work/personal)" -}}
+
+{{- /* Derive identity from profile */ -}}
+{{- $email := "daniele.alpago3@gmail.com" -}}
+{{- $signingkey := "~/.ssh/github-personal" -}}
+{{- if eq $profile "work" -}}
+{{-   $email = "dalpago@swissblock.net" -}}
+{{-   $signingkey = "~/.ssh/github-work" -}}
+{{- end }}
+
+sourceDir = {{ joinPath .chezmoi.homeDir ".local/share/chezmoi-staging" | quote }}
 encryption = "age"
+
+[hooks.read-source-state.pre]
+    command = {{ joinPath .chezmoi.homeDir ".local/share/chezmoi/sync-staging.sh" | quote }}
 
 [data]
     name = "Daniele Alpago"
-    email = "dalpago@swissblock.net"
+    email = {{ $email | quote }}
+    signingkey = {{ $signingkey | quote }}
+    profile = {{ $profile | quote }}
     osid = {{ $osid | quote }}
 
 [age]
-    identity = "~/.config/chezmoi/key.txt"
-    recipient = "age1hj44zw65hmez39uc7vwusw90j4sv3426djt6kyqs4ylfunm83yksm6awr7"
+    identity = {{ $ageIdentity | quote }}
+    recipient = {{ $ageRecipient | quote }}

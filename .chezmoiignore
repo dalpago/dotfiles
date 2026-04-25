@@ -25,3 +25,27 @@ Library/
 {{ if ne .chezmoi.os "linux" }}
 .config/systemd/
 {{ end }}
+
+# oh-my-zsh cache
+.oh-my-zsh/cache/**
+
+# Claude runtime data — do not manage these via chezmoi
+.claude/settings.local.json
+.claude/projects/**
+.claude/plans/**
+.claude/memory/**
+.claude/debug/**
+.claude/history.jsonl
+.claude/telemetry/**
+.claude/todos/**
+.claude/session-env/**
+.claude/shell-snapshots/**
+.claude/file-history/**
+.claude/cache/**
+.claude/backups/**
+.claude/tasks/**
+.claude/.credentials.json
+.claude/statsig/**
+.claude/ide/**
+.claude/paste-cache/**
+.claude/downloads/**

@@ -1,6 +1,43 @@
 #!/bin/bash
-# packages.yaml hash: {{ include ".chezmoidata/packages.yaml" | sha256sum }}
+# packages.yaml hash: {{ include ".chezmoidata/packages.yaml" | sha256sum }} {{ if stat (joinPath .chezmoi.sourceDir ".local/.chezmoidata/local.yaml") }}{{ include (joinPath ".local/.chezmoidata/local.yaml") | sha256sum }}{{ end }}
 set -euo pipefail
+
+# Merge base + enabled categories via Python
+MERGED_JSON=$(python3 - << 'PYEOF'
+import json, sys
+
+enabled = {{ dig "enabledCategories" list . | toJson }}
+base = {{ dig "base" dict . | toJson }}
+categories = {{ dig "categories" dict . | toJson }}
+
+def merge_lists(a, b):
+    return list(dict.fromkeys(a + b))
+
+darwin_brews = list(base.get('darwin', {}).get('brews', []))
+darwin_casks = list(base.get('darwin', {}).get('casks', []))
+debian_apt = list(base.get('debian', {}).get('apt', []))
+npm_pkgs = []
+
+for cat in enabled:
+    c = categories.get(cat, {})
+    darwin_brews = merge_lists(darwin_brews, c.get('darwin', {}).get('brews', []))
+    darwin_casks = merge_lists(darwin_casks, c.get('darwin', {}).get('casks', []))
+    debian_apt = merge_lists(debian_apt, c.get('debian', {}).get('apt', []))
+    npm_pkgs = merge_lists(npm_pkgs, c.get('npm', []))
+
+print(json.dumps({
+    'darwin_brews': darwin_brews,
+    'darwin_casks': darwin_casks,
+    'debian_apt': debian_apt,
+    'npm': npm_pkgs,
+}))
+PYEOF
+)
+
+DARWIN_BREWS=$(echo "$MERGED_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['darwin_brews']))")
+DARWIN_CASKS=$(echo "$MERGED_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['darwin_casks']))")
+DEBIAN_APT=$(echo "$MERGED_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['debian_apt']))")
+NPM_PKGS=$(echo "$MERGED_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print('\n'.join(d['npm']))")
 
 {{ if eq .osid "darwin" -}}
 # ===========================================================================
@@ -14,12 +51,8 @@ fi
 
 echo "Installing Homebrew packages..."
 brew bundle --file=/dev/stdin <<BREWEOF
-{{ range .packages.darwin.brews -}}
-brew "{{ . }}"
-{{ end -}}
-{{ range .packages.darwin.casks -}}
-cask "{{ . }}"
-{{ end -}}
+$(echo "$DARWIN_BREWS" | while IFS= read -r pkg; do [[ -n "$pkg" ]] && echo "brew \"$pkg\""; done)
+$(echo "$DARWIN_CASKS" | while IFS= read -r pkg; do [[ -n "$pkg" ]] && echo "cask \"$pkg\""; done)
 BREWEOF
 
 {{ else if eq .osid "debian" -}}
@@ -31,11 +64,7 @@ echo "Updating apt package index..."
 sudo apt update -y
 
 echo "Installing apt packages..."
-sudo apt install -y \
-{{ range .packages.debian.apt -}}
-    {{ . }} \
-{{ end }}
-    ;
+sudo apt install -y $(echo "$DEBIAN_APT" | tr '\n' ' ')
 
 # --- Manual installs for tools not in standard apt repos ---
 
@@ -78,11 +107,17 @@ if ! command -v age &>/dev/null; then
     }
 fi
 
-# pipx packages
-echo "Installing pipx packages..."
-{{ range .packages.debian.pipx -}}
-pipx install {{ . }} || true
-{{ end }}
+# starship (Linux fallback)
+if ! command -v starship &>/dev/null; then
+    echo "Installing starship..."
+    curl -sS https://starship.rs/install.sh | sh -s -- --yes
+fi
+
+# uv (Linux)
+if ! command -v uv &>/dev/null; then
+    echo "Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
 
 # Node.js via NodeSource LTS (needed for npm packages)
 if ! command -v node &>/dev/null; then
@@ -99,9 +134,31 @@ fi
 
 if command -v npm &>/dev/null; then
     echo "Installing npm global packages..."
-    {{ range .packages.npm -}}
-    if ! npm list -g "{{ . }}" &>/dev/null; then
-        npm install -g "{{ . }}"
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" ]] && continue
+        if ! npm list -g "$pkg" &>/dev/null; then
+            npm install -g "$pkg"
+        fi
+    done <<< "$NPM_PKGS"
+fi
+
+# ===========================================================================
+# Cross-platform — uv default venv
+# ===========================================================================
+
+if command -v uv &>/dev/null; then
+    echo "Setting up default Python venv at ~/.venvs/default..."
+    mkdir -p ~/.venvs
+    if [[ ! -d ~/.venvs/default ]]; then
+        uv venv ~/.venvs/default
     fi
-    {{ end -}}
+    UV_PYTHON_PACKAGES='{{ dig "uv_python" "packages" list . | toJson }}'
+    export VENV_PYTHON="$HOME/.venvs/default/bin/python"
+    echo "$UV_PYTHON_PACKAGES" | python3 -c "
+import json, sys, os, subprocess
+pkgs = json.load(sys.stdin)
+venv_python = os.environ['VENV_PYTHON']
+if pkgs:
+    subprocess.run(['uv', 'pip', 'install', '--python', venv_python] + pkgs, check=True)
+"
 fi

@@ -1,15 +1,79 @@
-# Dotfiles
+# dotfiles
 
-Personal dotfiles managed with [chezmoi](https://www.chezmoi.io/).
+Chezmoi-managed dotfiles for macOS and Debian/Ubuntu. Uses a public/private
+overlay pattern to keep machine-specific and sensitive config out of the public
+repo.
 
-## Quick Reference
+## Architecture
 
-| Machine | Shell | Config Location |
-|---------|-------|-----------------|
-| macOS | zsh | `~/.zshrc` |
-| WSL Ubuntu | zsh | `~/.zshrc` |
+```
+~/.local/share/chezmoi/        <- public source (this repo)
+~/.local/share/chezmoi/.local/ <- private overlay (dalpago/dotfiles-private)
+~/.local/share/chezmoi-staging/ <- merged staging dir (chezmoi sourceDir)
+```
 
----
+`sync-staging.sh` runs as the `hooks.read-source-state.pre` hook before chezmoi
+reads any source files. It rsyncs the public source into staging, then overlays
+the private `.local/` directory on top. Chezmoi reads from staging, so it sees
+the merged result.
+
+## Package Management
+
+`.chezmoidata/packages.yaml` has two top-level sections:
+
+- `base` — installed on every machine
+- `categories` — optional groups enabled per machine
+
+Per-machine category selection lives in `.local/.chezmoidata/packages.yaml`
+(private overlay). The install script merges base + enabled categories at
+runtime.
+
+Python packages are managed via uv into `~/.venvs/default`, which is activated
+in zshrc.
+
+## External Dependencies
+
+`.chezmoiexternal.toml.tmpl` manages:
+
+- oh-my-zsh and plugins: `type=archive` to avoid leaving `.git` dirs on disk.
+  Weekly refresh via `refreshPeriod = "168h"`.
+- `~/.claude`: `type=git-repo` with `exact=false` so local-only files
+  (settings.local.json, projects/, memory/) survive `chezmoi apply`.
+
+`settings.json` and `mcp-servers.json` are excluded from the claude-config
+external and managed manually.
+
+## First-time Setup
+
+```sh
+# 1. Install chezmoi
+sh -c "$(curl -fsLS get.chezmoi.io)"
+
+# 2. Initialize from this repo
+chezmoi init git@github.com:dalpago/dotfiles.git
+
+# 3. Clone private overlay (requires dalpago/dotfiles-private to exist)
+git clone git@github.com:dalpago/dotfiles-private.git \
+    ~/.local/share/chezmoi/.local
+
+# 4. Apply
+chezmoi apply
+```
+
+Always run `chezmoi diff` before `chezmoi apply` to review changes.
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `sync-staging.sh` | Pre-hook: merges public + private overlay into staging |
+| `.chezmoi.toml.tmpl` | Chezmoi config template; sets sourceDir to staging |
+| `.chezmoidata/packages.yaml` | All managed packages (base + categories) |
+| `.chezmoiexternal.toml.tmpl` | External git/archive dependencies |
+| `.chezmoiignore` | Files chezmoi must not manage (Claude runtime data) |
+| `dot_zshrc.tmpl` | Zsh config: oh-my-zsh, starship, eza, bat, uv venv |
+| `dot_config/starship.toml` | Starship prompt with Catppuccin Mocha palette |
+| `dot_config/bat/config` | bat pager config with Catppuccin Mocha theme |
 
 ## Setup on a New Machine
 
@@ -30,25 +94,22 @@ chezmoi init --apply git@github.com:dalpago/dotfiles.git
 # 3. Copy the age decryption key (transfer securely from existing machine)
 mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
-# The key starts with: AGE-SECRET-KEY-...
 
-# 4. Re-apply to decrypt secrets and install all packages
+# 4. Clone private overlay
+git clone git@github.com:dalpago/dotfiles-private.git \
+    ~/.local/share/chezmoi/.local
+
+# 5. Re-apply to decrypt secrets and install all packages
 chezmoi apply
-# This automatically installs all Homebrew formulae, casks, and npm packages
-# defined in .chezmoidata/packages.yaml
 
-# 5. Generate SSH keys (if not copying from another machine)
+# 6. Generate SSH keys (if not copying from another machine)
 ssh-keygen -t ed25519 -C "daniele.alpago3@gmail.com" -f ~/.ssh/github-personal
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/github-work
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/csi-data
 
-# 6. Add SSH keys to agent
+# 7. Add SSH keys to agent
 ssh-add ~/.ssh/github-personal
 ssh-add ~/.ssh/github-work
-
-# 7. Add public keys to GitHub
-cat ~/.ssh/github-personal.pub  # Add to github.com/settings/keys (dalpago)
-cat ~/.ssh/github-work.pub      # Add to github.com/settings/keys (dalpago-sbt)
 ```
 
 ### WSL Ubuntu
@@ -63,126 +124,54 @@ sudo apt update && sudo apt install -y age
 # 3. Install zsh and oh-my-zsh dependencies
 sudo apt install -y zsh git curl
 
-# 4. Initialize dotfiles (oh-my-zsh will be installed automatically)
+# 4. Initialize dotfiles
 ~/.local/bin/chezmoi init --apply git@github.com:dalpago/dotfiles.git
 
 # 5. Copy the age decryption key (transfer securely from Mac)
 mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
 
-# 6. Re-apply to decrypt secrets and install all packages
-chezmoi apply
-# This automatically installs all apt packages, manual tools (zoxide, eza,
-# git-delta, age), pipx packages, Node.js, and npm packages
-# defined in .chezmoidata/packages.yaml
+# 6. Clone private overlay
+git clone git@github.com:dalpago/dotfiles-private.git \
+    ~/.local/share/chezmoi/.local
 
-# 7. Set zsh as default shell
+# 7. Re-apply to decrypt secrets and install all packages
+chezmoi apply
+
+# 8. Set zsh as default shell
 chsh -s $(which zsh)
 
-# 8. Generate SSH keys (or copy from Mac)
+# 9. Generate SSH keys (or copy from Mac)
 ssh-keygen -t ed25519 -C "daniele.alpago3@gmail.com" -f ~/.ssh/github-personal
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/github-work
-ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/csi-data
-
-# 9. Start ssh-agent and add keys
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/github-personal
-ssh-add ~/.ssh/github-work
-
-# 10. Add public keys to GitHub (same keys as Mac, or new ones)
-cat ~/.ssh/github-personal.pub
-cat ~/.ssh/github-work.pub
 ```
-
----
 
 ## Daily Workflow
 
-### Editing Dotfiles
-
 ```bash
-# Edit a dotfile (opens in editor, updates chezmoi source)
+# Edit a dotfile
 chezmoi edit ~/.zshrc
 
 # Preview changes before applying
 chezmoi diff
 
-# Apply changes to home directory
+# Apply changes
 chezmoi apply
 
-# Commit and push changes to GitHub
+# Commit and push
 chezmoi cd && git add -A && git commit -m "Update dotfiles" && git push
 ```
 
-### Managing Packages
+## Secrets Management
 
-```bash
-# Add or remove packages by editing the manifest
-chezmoi edit --apply ~/.local/share/chezmoi/.chezmoidata/packages.yaml
+Secrets are encrypted with [age](https://github.com/FiloSottile/age).
 
-# Or edit directly and apply
-vim ~/.local/share/chezmoi/.chezmoidata/packages.yaml
-chezmoi apply   # Automatically re-runs the install script (hash changed)
-```
-
-### Pulling Changes (from another machine)
-
-```bash
-# Pull latest dotfiles from GitHub and apply
-chezmoi update
-```
-
----
-
-## Useful Commands
-
-| Command | Description |
-|---------|-------------|
-| `chezmoi diff` | Preview changes before applying |
-| `chezmoi apply` | Apply dotfiles to home directory |
-| `chezmoi update` | Pull from GitHub and apply |
-| `chezmoi edit ~/.zshrc` | Edit a dotfile |
-| `chezmoi cd` | Enter chezmoi source directory |
-| `chezmoi managed` | List all managed files |
-| `chezmoi add ~/.config/app/config` | Add a new file to chezmoi |
-| `chezmoi add --encrypt ~/.secrets` | Add encrypted file |
-| `chezmoi forget ~/.file` | Stop managing a file |
-
----
-
-## File Structure
-
-```
-~/.local/share/chezmoi/           # chezmoi source directory
-├── .chezmoi.toml.tmpl            # Machine-specific config template
-├── .chezmoidata/
-│   └── packages.yaml             # Declarative package manifest (macOS + Linux + npm)
-├── .chezmoiexternal.toml         # External dependencies (oh-my-zsh, claude-config)
-├── .chezmoiignore                # Files to ignore per OS
-├── .chezmoiscripts/
-│   └── run_onchange_install-packages.sh.tmpl  # Auto-installs packages on apply
-├── dot_zshrc.tmpl                # ~/.zshrc template
-├── dot_gitconfig.tmpl            # ~/.gitconfig template
-├── dot_gitignore-global          # ~/.gitignore-global
-├── encrypted_private_dot_secrets.age  # Encrypted API keys
-└── private_dot_ssh/
-    └── config.tmpl               # ~/.ssh/config template
-```
-
-### Naming Conventions
-
-| Prefix | Meaning | Example |
-|--------|---------|---------|
-| `dot_` | Becomes `.` | `dot_zshrc` → `.zshrc` |
-| `private_` | Set 600 permissions | `private_dot_ssh` → `.ssh` (mode 600) |
-| `encrypted_` | Encrypted with age | Decrypted on apply |
-| `.tmpl` | Template file | Processed with Go templates |
-
----
+The age key must be transferred securely to new machines:
+1. **Password Manager** - Copy from secure note
+2. **Secure Copy** - `scp ~/.config/chezmoi/key.txt user@newmachine:~/.config/chezmoi/`
+3. **Manual** - Display on old machine, type on new machine
 
 ## SSH Configuration
-
-### Hosts
 
 | Host | Account | Key |
 |------|---------|-----|
@@ -190,91 +179,7 @@ chezmoi update
 | `github-work` | dalpago-sbt (work) | `~/.ssh/github-work` |
 | `ftp.csidata.com` | CSI Data | `~/.ssh/csi-data` |
 
-### Cloning Work Repos
-
 ```bash
-# Use the github-work alias for work repositories
+# Clone work repos using the github-work alias
 git clone github-work:dalpago-sbt/repo-name.git
-
-# Or change remote for existing repo
-git remote set-url origin github-work:dalpago-sbt/repo-name.git
-```
-
----
-
-## Secrets Management
-
-Secrets are encrypted with [age](https://github.com/FiloSottile/age) encryption.
-
-### Adding a New Secret
-
-```bash
-# Edit the secrets file
-chezmoi edit ~/.secrets
-
-# Add your secret
-export NEW_API_KEY="..."
-
-# Save and apply
-chezmoi apply
-
-# Commit (the file is encrypted in the repo)
-chezmoi cd && git add -A && git commit -m "Add new secret" && git push
-```
-
-### Transferring Age Key to New Machine
-
-The age key must be transferred securely (it's the only way to decrypt secrets):
-
-1. **Option A: Password Manager** - Copy from secure note
-2. **Option B: Secure Copy** - `scp ~/.config/chezmoi/key.txt user@newmachine:~/.config/chezmoi/`
-3. **Option C: Manual** - Display on old machine, type on new machine
-
-```bash
-# On old machine - display key
-cat ~/.config/chezmoi/key.txt
-
-# On new machine - create key file
-mkdir -p ~/.config/chezmoi
-nano ~/.config/chezmoi/key.txt  # Paste the key
-chmod 600 ~/.config/chezmoi/key.txt
-```
-
----
-
-## Troubleshooting
-
-### SSH Permission Denied
-
-```bash
-# Check which account you're authenticating as
-ssh -T git@github.com
-ssh -T github-work
-
-# List keys in agent
-ssh-add -l
-
-# Add keys if missing
-ssh-add ~/.ssh/github-personal
-ssh-add ~/.ssh/github-work
-```
-
-### Template Errors
-
-```bash
-# Check template syntax
-chezmoi execute-template < ~/.local/share/chezmoi/dot_zshrc.tmpl
-
-# View generated output
-chezmoi cat ~/.zshrc
-```
-
-### Reset to Clean State
-
-```bash
-# Remove all chezmoi-managed files (careful!)
-chezmoi purge
-
-# Re-apply everything
-chezmoi apply
 ```
