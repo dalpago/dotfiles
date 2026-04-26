@@ -62,8 +62,17 @@ in zshrc.
   `exact=false` so local-only files (settings.local.json, projects/, memory/)
   survive `chezmoi apply`.
 
-`settings.json` is excluded from the claude-config external and managed
-manually. MCP servers are configured in `~/.claude.json` (not tracked).
+Only `settings.json`, `mcp-servers.json`, `.git/**`, and `.gitignore` are
+excluded from the external. Everything else syncs: CLAUDE.md, agents, skills,
+rules, scripts, docs, output-styles, upstream, LICENSE, README.
+
+- **`settings.json`** — excluded because it contains machine-local env vars
+  (`CLAUDE_CODE_EFFORT_LEVEL`, etc.) that would be overwritten on every apply.
+  Managed manually.
+- **`mcp-servers.json`** — excluded because it has hardcoded paths in the
+  upstream repo. Instead, the chezmoi setup script generates it with correct
+  paths from template data, then calls `scripts/setup-mcp-servers.sh` to merge
+  into `~/.claude.json`.
 
 ## Secrets Management
 
@@ -209,5 +218,12 @@ Chezmoi manages 100+ files including:
 - **Git**: `.gitconfig` (SSH signing, delta pager), `.gitignore-global`
 - **Editor/Pager**: bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub)
-- **Claude Code**: agents, skills, conventions, plugins (via mirus-tech external)
+- **Claude Code**: via mirus-tech/claude-config git-repo external:
+  - `CLAUDE.md` — global development guidelines
+  - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)
+  - `skills/` — 17+ skills (planner, codebase-analysis, refactor, etc.)
+  - `rules/` — language-specific conventions (python, typescript, rust, fastapi, nextjs)
+  - `scripts/` — utilities (MCP setup, upstream sync, validation, cleanup)
+  - `docs/` — architecture and integration guides
+  - `upstream/` — vendored solatis/claude-config (synced via git subtree)
 - **Packages**: Homebrew (macOS) / apt (Debian) with categorized install

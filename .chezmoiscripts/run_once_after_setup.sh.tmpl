@@ -1,32 +1,69 @@
 #!/bin/bash
-# Portable MCP server setup for Claude Code
-# This script runs once after chezmoi apply to configure user-scoped MCP servers.
+# Post-apply setup: generate mcp-servers.json with correct paths, then merge
+# into ~/.claude.json using the mirus-tech setup script.
 
 set -euo pipefail
 
-if ! command -v claude &>/dev/null; then
-  echo "claude CLI not found, skipping MCP setup"
-  exit 0
+CLAUDE_DIR="{{ .chezmoi.homeDir }}/.claude"
+MCP_JSON="$CLAUDE_DIR/mcp-servers.json"
+MCP_SCRIPT="$CLAUDE_DIR/scripts/setup-mcp-servers.sh"
+
+# Generate mcp-servers.json with machine-local paths and API key
+cat > "$MCP_JSON" <<'MCPEOF'
+{
+  "context7": {
+    "type": "http",
+    "url": "https://mcp.context7.com/mcp",
+    "headers": {
+      "CONTEXT7_API_KEY": "{{ .context7_api_key }}"
+    }
+  },
+  "serena": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": [
+      "--from",
+      "git+https://github.com/oraios/serena",
+      "serena",
+      "start-mcp-server",
+      "--context",
+      "claude-code",
+      "--project",
+      "{{ .chezmoi.homeDir }}",
+      "--open-web-dashboard",
+      "false"
+    ],
+    "env": {}
+  }
+}
+MCPEOF
+
+echo "Generated $MCP_JSON"
+
+# Merge into ~/.claude.json using mirus-tech script
+if [[ -x "$MCP_SCRIPT" ]] && command -v jq &>/dev/null; then
+  "$MCP_SCRIPT"
+else
+  echo "Falling back to claude mcp add..."
+  if command -v claude &>/dev/null; then
+    claude mcp remove --scope user serena 2>/dev/null || true
+    claude mcp remove --scope user context7 2>/dev/null || true
+
+    claude mcp add --scope user --transport stdio serena -- \
+      uvx --from git+https://github.com/oraios/serena \
+      serena start-mcp-server \
+      --context claude-code \
+      --project {{ .chezmoi.homeDir }} \
+      --open-web-dashboard False
+
+    claude mcp add --scope user --transport http \
+      --header "CONTEXT7_API_KEY: {{ .context7_api_key }}" \
+      context7 \
+      -- https://mcp.context7.com/mcp
+
+    echo "MCP servers configured via claude CLI"
+  else
+    echo "Neither setup-mcp-servers.sh+jq nor claude CLI available"
+    echo "MCP servers NOT configured — run manually after installing dependencies"
+  fi
 fi
-
-echo "Setting up Claude Code MCP servers..."
-
-# Remove existing entries (idempotent)
-claude mcp remove --scope user serena 2>/dev/null || true
-claude mcp remove --scope user context7 2>/dev/null || true
-
-# Add serena (stdio transport)
-claude mcp add --scope user --transport stdio serena -- \
-  uvx --from git+https://github.com/oraios/serena \
-  serena start-mcp-server \
-  --context claude-code \
-  --project {{ .chezmoi.homeDir }} \
-  --open-web-dashboard False
-
-# Add context7 (http transport)
-claude mcp add --scope user --transport http \
-  --header "CONTEXT7_API_KEY: {{ .context7_api_key }}" \
-  context7 \
-  -- https://mcp.context7.com/mcp
-
-echo "MCP servers configured successfully"
