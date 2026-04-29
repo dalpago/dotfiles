@@ -14,14 +14,26 @@ jobs:
       - name: Install chezmoi
         run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
 
+      - name: Write CI chezmoi config
+        run: |
+          mkdir -p ~/.config/chezmoi
+          cat > ~/.config/chezmoi/chezmoi.toml <<'EOF'
+          [data]
+              name = "CI"
+              email = "ci@example.com"
+              signingkey = "~/.ssh/id_ed25519"
+              profile = "personal"
+              osid = "linux"
+          EOF
+
       - name: Render templates
-        env:
-          CHEZMOI_DATA: |
-            {"name":"CI","email":"ci@example.com","signingkey":"~/.ssh/id_ed25519","profile":"personal","osid":"linux"}
         run: |
           shopt -s globstar nullglob
           fail=0
           for f in **/*.tmpl; do
+            # Skip chezmoi's own config template — it uses promptStringOnce
+            # which only works in `chezmoi init`, not execute-template.
+            [[ "$f" == ".chezmoi.toml.tmpl" ]] && continue
             echo "→ $f"
             if ! chezmoi execute-template < "$f" > /dev/null; then
               echo "  FAILED to render: $f"
