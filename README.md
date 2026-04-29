@@ -33,8 +33,8 @@ on top. Chezmoi reads from staging, so it sees the merged result.
 
 | Location | Contents | Git tracked? |
 |----------|----------|--------------|
-| `dalpago/dotfiles` (public) | Shell config, git config, packages, externals, scripts | Yes — public |
-| `dalpago/dotfiles-private` (private) | Enabled categories, encrypted secrets, age key paths | Yes — private |
+| `dalpago/dotfiles` (public) | Shell config, git config, packages, externals, scripts, SSH public keys | Yes — public |
+| `dalpago/dotfiles-private` (private) | Enabled categories, encrypted secrets, encrypted SSH private keys, encrypted `.netrc` | Yes — private |
 | `~/.config/chezmoi/chezmoi.toml` | Machine-local: name, email, profile, API keys | No |
 
 ## Package Management
@@ -76,15 +76,29 @@ rules, scripts, docs, output-styles, upstream, LICENSE, README.
 
 ## Secrets Management
 
-Secrets are handled at two levels:
+All secrets — API keys, tokens, passwords — live in age-encrypted files.
+There is no plaintext-in-config layer; the canonical source for runtime
+secrets is `~/.secrets`, which scripts and zshrc source as env vars.
 
-1. **API keys used in chezmoi templates** (e.g. `context7_api_key`) go in
-   `~/.config/chezmoi/chezmoi.toml` under `[data]`. This file is machine-local
-   and not tracked by any git repo.
+1. **API keys and tokens** live as `export FOO=...` lines inside the
+   age-encrypted `~/.secrets` file. The encrypted source is in
+   `dotfiles-private` at `secrets/encrypted_private_dot_secrets.age`.
+   Scripts that need a key (e.g. the MCP setup script) read it from the
+   environment after sourcing `~/.secrets`.
 
-2. **Encrypted files deployed to disk** (e.g. `~/.secrets`) use
-   [age](https://github.com/FiloSottile/age) encryption. The encrypted source
-   lives in `dotfiles-private` under `secrets/`.
+   To add a new key:
+   ```bash
+   chezmoi edit ~/.secrets        # opens the decrypted file
+   # add: export NEW_API_KEY="..."
+   chezmoi apply                   # re-encrypts, redeploys
+   ```
+
+2. **Other encrypted files deployed to disk** (e.g. `~/.netrc`) use the same
+   [age](https://github.com/FiloSottile/age) encryption. Encrypted sources
+   live in the private overlay as `encrypted_*.age` files.
+
+3. **SSH private keys** are age-encrypted in the private overlay under
+   `private_dot_ssh/encrypted_*.age`. Chezmoi decrypts them on `apply`.
 
 The age decryption key must be transferred securely to new machines:
 - **Password Manager** — copy from secure note
@@ -111,25 +125,28 @@ chezmoi init --apply git@github.com:dalpago/dotfiles.git
 mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
 
-# 4. Add machine-local secrets to chezmoi config
-#    Edit ~/.config/chezmoi/chezmoi.toml and add API keys under [data]:
-#      context7_api_key = "your-key-here"
-
-# 5. Clone private overlay
+# 4. Clone private overlay (contains encrypted ~/.secrets with API keys)
 git clone git@github.com:dalpago/dotfiles-private.git \
     ~/.local/share/chezmoi/.local
 
-# 6. Re-apply to decrypt secrets and install all packages
+# 5. Re-apply to decrypt secrets and install all packages
 chezmoi apply
 
-# 7. Generate SSH keys (if not copying from another machine)
+# 6. Generate SSH keys (if not restoring from private overlay)
 ssh-keygen -t ed25519 -C "daniele.alpago3@gmail.com" -f ~/.ssh/github-personal
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/github-work
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/csi-data
 
-# 8. Add SSH keys to agent
+# 7. Add SSH keys to agent
 ssh-add ~/.ssh/github-personal
 ssh-add ~/.ssh/github-work
+
+# 8. Configure tea CLI for Forgejo (tokens from password manager)
+tea login add --name mirus-tech --url https://git.mirus-tech.com --token "$FORGEJO_MIRUS_TOKEN" --no-version-check
+tea login add --name onca-karat --url https://git.onca-karat.ts.net --token "$FORGEJO_ONCA_TOKEN" --no-version-check
+
+# 9. Set gh CLI to use SSH
+gh config set git_protocol ssh
 ```
 
 ### WSL Ubuntu
@@ -147,7 +164,7 @@ sudo apt install -y zsh git curl
 # 4. Initialize dotfiles
 ~/.local/bin/chezmoi init --apply git@github.com:dalpago/dotfiles.git
 
-# 5. Copy age key and add machine-local config (same as macOS steps 3-4)
+# 5. Copy age key (same as macOS step 3)
 
 # 6. Clone private overlay
 git clone git@github.com:dalpago/dotfiles-private.git \
@@ -159,9 +176,11 @@ chezmoi apply
 # 8. Set zsh as default shell
 chsh -s $(which zsh)
 
-# 9. Generate SSH keys (or copy from Mac)
+# 9. Generate SSH keys (or copy from Mac / restore from private overlay)
 ssh-keygen -t ed25519 -C "daniele.alpago3@gmail.com" -f ~/.ssh/github-personal
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/github-work
+
+# 10. Configure tea CLI and gh (same as macOS steps 9-10)
 ```
 
 ## Daily Workflow
@@ -185,15 +204,28 @@ cd ~/.local/share/chezmoi/.local && git add -A && git commit -m "Update private 
 
 ## SSH Configuration
 
-| Host | Account | Key |
-|------|---------|-----|
-| `github.com` | dalpago (personal) | `~/.ssh/github-personal` |
-| `github-work` | dalpago-sbt (work) | `~/.ssh/github-work` |
-| `ftp.csidata.com` | CSI Data | `~/.ssh/csi-data` |
+| Host alias | Account | Key | Protocol |
+|------------|---------|-----|----------|
+| `github-personal` | dalpago (personal) | `~/.ssh/github-personal` | SSH |
+| `github-work` | dalpago-sbt (work) | `~/.ssh/github-work` | SSH |
+| `ftp.csidata.com` | CSI Data | `~/.ssh/csi-data` | SSH |
+
+Forgejo instances use HTTPS + `.netrc` token authentication (not SSH):
+
+| Instance | Auth | Usage |
+|----------|------|-------|
+| `git.mirus-tech.com` | `.netrc` token | `git clone https://git.mirus-tech.com/org/repo.git` |
+| `git.onca-karat.ts.net` | `.netrc` token | `git clone https://git.onca-karat.ts.net/org/repo.git` |
 
 ```bash
-# Clone work repos using the github-work alias
+# Clone personal GitHub repos
+git clone github-personal:dalpago/repo-name.git
+
+# Clone work GitHub repos
 git clone github-work:dalpago-sbt/repo-name.git
+
+# Clone Forgejo repos (HTTPS, auth via ~/.netrc)
+git clone https://git.mirus-tech.com/org/repo-name.git
 ```
 
 ## Key Files
@@ -205,6 +237,7 @@ git clone github-work:dalpago-sbt/repo-name.git
 | `.chezmoidata/packages.yaml` | All managed packages (base + categories) |
 | `.chezmoiexternal.toml.tmpl` | External git/archive dependencies |
 | `.chezmoiignore` | Files chezmoi must not manage (Claude runtime data, SSH keys) |
+| `private_dot_ssh/allowed_signers` | SSH public keys trusted for commit signature verification |
 | `.chezmoiscripts/` | Install scripts (packages, MCP servers) |
 | `dot_zshrc.tmpl` | Zsh config: oh-my-zsh, starship, eza, bat, uv venv |
 | `dot_config/starship.toml` | Starship prompt with Catppuccin Mocha palette |
@@ -215,9 +248,9 @@ git clone github-work:dalpago-sbt/repo-name.git
 Chezmoi manages 100+ files including:
 
 - **Shell**: `.zshrc`, oh-my-zsh + 5 plugins, Starship prompt
-- **Git**: `.gitconfig` (SSH signing, delta pager), `.gitignore-global`
+- **Git**: `.gitconfig` (SSH signing, delta pager, `osxkeychain` credential helper), `.gitignore-global`
 - **Editor/Pager**: bat (Catppuccin Mocha), eza theme
-- **SSH**: `~/.ssh/config` (multi-account GitHub)
+- **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
 - **Claude Code**: via mirus-tech/claude-config git-repo external:
   - `CLAUDE.md` — global development guidelines
   - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)

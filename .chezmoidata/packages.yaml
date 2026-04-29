@@ -52,6 +52,7 @@ categories:
         - mosh
         - pandoc
         - ripgrep
+        - tea
         - tmux
     debian:
       apt:

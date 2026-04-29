@@ -1,0 +1,42 @@
+name: verify
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+
+      - name: Render templates
+        env:
+          CHEZMOI_DATA: |
+            {"name":"CI","email":"ci@example.com","signingkey":"~/.ssh/id_ed25519","profile":"personal","osid":"linux"}
+        run: |
+          shopt -s globstar nullglob
+          fail=0
+          for f in **/*.tmpl; do
+            echo "→ $f"
+            if ! chezmoi execute-template < "$f" > /dev/null; then
+              echo "  FAILED to render: $f"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shellcheck
+        run: |
+          shellcheck sync-staging.sh || true
+          for f in .chezmoiscripts/*.tmpl; do
+            # strip Go template directives, then lint
+            sed 's/{{[^}]*}}/""/g' "$f" | shellcheck --shell=bash - || true
+          done

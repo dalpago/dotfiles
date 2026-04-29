@@ -1,6 +1,9 @@
 #!/bin/bash
 # Post-apply setup: generate mcp-servers.json with correct paths, then merge
 # into ~/.claude.json using the mirus-tech setup script.
+#
+# Re-runs whenever the encrypted secrets blob or this script changes.
+# secrets hash: {{ include ".local/secrets/encrypted_private_dot_secrets.age" | sha256sum }}
 
 set -euo pipefail
 
@@ -8,14 +11,27 @@ CLAUDE_DIR="{{ .chezmoi.homeDir }}/.claude"
 MCP_JSON="$CLAUDE_DIR/mcp-servers.json"
 MCP_SCRIPT="$CLAUDE_DIR/scripts/setup-mcp-servers.sh"
 
-# Generate mcp-servers.json with machine-local paths and API key
-cat > "$MCP_JSON" <<'MCPEOF'
+# Source secrets for CONTEXT7_API_KEY
+if [[ -f "$HOME/.secrets" ]]; then
+    source "$HOME/.secrets"
+fi
+
+if [[ -z "${CONTEXT7_API_KEY:-}" ]]; then
+    echo "WARN: CONTEXT7_API_KEY not set — skipping MCP setup."
+    echo "      This is expected on first apply before ~/.secrets is decrypted."
+    echo "      Once the age key is in place and ~/.secrets exists, re-run:"
+    echo "          chezmoi apply"
+    exit 0
+fi
+
+# Generate mcp-servers.json with machine-local paths and API key from env
+cat > "$MCP_JSON" <<MCPEOF
 {
   "context7": {
     "type": "http",
     "url": "https://mcp.context7.com/mcp",
     "headers": {
-      "CONTEXT7_API_KEY": "{{ .context7_api_key }}"
+      "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
     }
   },
   "serena": {
@@ -57,7 +73,7 @@ else
       --open-web-dashboard False
 
     claude mcp add --scope user --transport http \
-      --header "CONTEXT7_API_KEY: {{ .context7_api_key }}" \
+      --header "CONTEXT7_API_KEY: ${CONTEXT7_API_KEY}" \
       context7 \
       -- https://mcp.context7.com/mcp
 

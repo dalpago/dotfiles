@@ -3,6 +3,15 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # Files listed here will NOT be managed by chezmoi.
 # Supports templates: you can ignore files based on OS.
+#
+# Note: this file is distinct from the `exclude` lists in
+# .chezmoiexternal.toml.tmpl. The two solve different problems:
+#   - external `exclude` blocks files from being PULLED from upstream
+#     (e.g. settings.json from the claude-config repo).
+#   - .chezmoiignore blocks chezmoi from MANAGING files that exist locally
+#     as user runtime data (e.g. ~/.claude/projects/, history.jsonl).
+# Don't conflate them. If a file should never enter the source tree, use
+# external `exclude`. If it enters but must not be deployed/diffed, ignore here.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Always ignore
