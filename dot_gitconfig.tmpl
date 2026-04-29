@@ -28,6 +28,9 @@
 [gpg]
     format = ssh
 
+[gpg "ssh"]
+    allowedSignersFile = ~/.ssh/allowed_signers
+
 [commit]
     gpgSign = true
     verbose = true
@@ -159,4 +162,8 @@
     gone = "!git fetch -p && git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D"
 
 [credential]
+{{ if eq .chezmoi.os "darwin" -}}
+    helper = osxkeychain
+{{ else -}}
     helper = cache --timeout=3600
+{{ end -}}

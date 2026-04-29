@@ -30,7 +30,9 @@ Host *
 # ─────────────────────────────────────────────────────────────────────────────────
 # GitHub - Personal Account (dalpago)
 # ─────────────────────────────────────────────────────────────────────────────────
-Host github.com
+#   git clone github-personal:dalpago/repo-name.git
+#   git remote set-url origin github-personal:dalpago/repo-name.git
+Host github-personal
     HostName github.com
     User git
     IdentityFile ~/.ssh/github-personal
@@ -54,12 +56,3 @@ Host ftp.csidata.com
     IdentityFile ~/.ssh/csi-data
     # Add your username if different from local:
     # User your_csi_username
-
-# ─────────────────────────────────────────────────────────────────────────────────
-# Example: Add more hosts below
-# ─────────────────────────────────────────────────────────────────────────────────
-# Host my-server
-#     HostName server.example.com
-#     User myusername
-#     IdentityFile ~/.ssh/my-server-key
-#     Port 22
