@@ -25,6 +25,7 @@ $conda\
 $time\
 [ ](fg:lavender)\
 $cmd_duration\
+$line_break\
 $character"""
 
 add_newline = true
@@ -147,7 +148,7 @@ style = "bg:lavender"
 format = '[[  $time ](fg:crust bg:lavender)]($style)'
 
 [line_break]
-disabled = true
+disabled = false
 
 [character]
 disabled = false
