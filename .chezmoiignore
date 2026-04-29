@@ -18,6 +18,10 @@
 README.md
 LICENSE
 
+# chezmoi pre-hook script — referenced directly from chezmoi.toml,
+# not a user dotfile. Must not deploy to $HOME.
+sync-staging.sh
+
 # Ignore SSH private keys - these are generated per machine, not synced
 .ssh/github-personal
 .ssh/github-work

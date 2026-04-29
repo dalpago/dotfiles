@@ -3,7 +3,7 @@
 # into ~/.claude.json using the mirus-tech setup script.
 #
 # Re-runs whenever the encrypted secrets blob or this script changes.
-# secrets hash: {{ include ".local/secrets/encrypted_private_dot_secrets.age" | sha256sum }}
+# secrets hash: {{ include "encrypted_private_dot_secrets.age" | sha256sum }}
 
 set -euo pipefail
 

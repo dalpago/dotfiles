@@ -6,9 +6,12 @@
 # with --delete, and at this scale (<1MB) the cost is negligible. Removed
 # files in either layer disappear from staging on the next apply.
 #
-# Symlinks (not copies) are used for the secrets/ tree and the machine-local
+# Symlinks (not copies) are used for secrets/ contents and the machine-local
 # .chezmoi.toml.local so chezmoi reads live private content rather than a
-# stale snapshot.
+# stale snapshot. Files in .local/secrets/ are symlinked into the staging
+# root (not into staging/.local/secrets/) so chezmoi's path-prefix interpreter
+# resolves names like `encrypted_private_dot_secrets.age` to ~/.secrets
+# rather than ~/.local/secrets/.secrets.
 
 set -euo pipefail
 
@@ -33,8 +36,10 @@ if [[ -d "$LOCAL_OVERLAY" ]]; then
 fi
 
 if [[ -d "$LOCAL_OVERLAY/secrets" ]]; then
-    mkdir -p "$STAGING/.local"
-    ln -s "$LOCAL_OVERLAY/secrets" "$STAGING/.local/secrets"
+    for f in "$LOCAL_OVERLAY/secrets"/*; do
+        [[ -e "$f" ]] || continue
+        ln -sf "$f" "$STAGING/$(basename "$f")"
+    done
 fi
 
 if [[ -f "$LOCAL_OVERLAY/.chezmoi.toml.local" ]]; then
