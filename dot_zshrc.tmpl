@@ -120,3 +120,9 @@ export WIN_HOME="/mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d
 if [[ -f "$HOME/.secrets" ]]; then
     source "$HOME/.secrets"
 fi
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# GitHub CLI: explicit per-account invocation (no Keychain)
+# ─────────────────────────────────────────────────────────────────────────────────
+gh-personal() { GH_TOKEN="$GH_PERSONAL_TOKEN" gh "$@"; }
+gh-work()     { GH_TOKEN="$GH_WORK_TOKEN"     gh "$@"; }

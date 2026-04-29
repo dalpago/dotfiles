@@ -12,13 +12,8 @@ Host *
     # Only use explicitly configured keys (don't try all keys)
     IdentitiesOnly yes
 
-    # Add keys to agent automatically
+    # Add keys to agent automatically (per-session cache, not Keychain)
     AddKeysToAgent yes
-
-{{- if eq .chezmoi.os "darwin" }}
-    # macOS: Store passphrases in Keychain
-    UseKeychain yes
-{{- end }}
 
     # Security: Use strong algorithms only
     HostKeyAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256
