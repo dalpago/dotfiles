@@ -143,7 +143,7 @@ ssh-add ~/.ssh/github-work
 
 # 8. Configure tea CLI for Forgejo (tokens from password manager)
 tea login add --name mirus-tech --url https://git.mirus-tech.com --token "$FORGEJO_MIRUS_TOKEN" --no-version-check
-tea login add --name onca-karat --url https://git.onca-karat.ts.net --token "$FORGEJO_ONCA_TOKEN" --no-version-check
+tea login add --name sgm --url http://git.sgm.internal --token "$FORGEJO_SGM_TOKEN" --no-version-check
 
 # 9. Set gh CLI to use SSH
 gh config set git_protocol ssh
@@ -215,7 +215,7 @@ Forgejo instances use HTTPS + `.netrc` token authentication (not SSH):
 | Instance | Auth | Usage |
 |----------|------|-------|
 | `git.mirus-tech.com` | `.netrc` token | `git clone https://git.mirus-tech.com/org/repo.git` |
-| `git.onca-karat.ts.net` | `.netrc` token | `git clone https://git.onca-karat.ts.net/org/repo.git` |
+| `git.sgm.internal` | `.netrc` token | `git clone http://git.sgm.internal/org/repo.git` |
 
 ```bash
 # Clone personal GitHub repos
