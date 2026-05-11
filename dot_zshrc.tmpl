@@ -31,8 +31,10 @@ eval "$(starship init zsh)"
 # ─────────────────────────────────────────────────────────────────────────────────
 # Environment Variables (Cross-Platform)
 # ─────────────────────────────────────────────────────────────────────────────────
-export EDITOR="vim"
+export EDITOR="nvim"
 export LANG="en_US.UTF-8"
+# Group-writable defaults so files stay shareable across the work and daniele macOS accounts.
+umask 002
 if command -v bat &>/dev/null; then
     export PAGER="bat"
     export MANPAGER="sh -c 'col -bx | bat -l man -p'"
