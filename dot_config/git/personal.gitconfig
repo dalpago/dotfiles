@@ -1,0 +1,5 @@
+[user]
+    name = Daniele Alpago
+    email = daniele.alpago3@gmail.com
+[url "git@github-personal:dalpago/"]
+    insteadOf = git@github.com:dalpago/
