@@ -7,6 +7,7 @@ base:
       - git
       - git-delta
       - gnupg
+      - neovim
       - starship
       - uv
       - vim
@@ -14,6 +15,7 @@ base:
       - zsh
     casks:
       - iterm2
+      - skim
 
   debian:
     apt:
@@ -21,6 +23,7 @@ base:
       - fzf
       - git
       - gnupg
+      - neovim
       - vim
       - zsh
 
@@ -82,7 +85,8 @@ categories:
         - ferdium
         - libreoffice
     debian:
-      apt: []
+      apt:
+        - zathura
     npm: []
 
   work:
