@@ -1,7 +1,10 @@
 return {
   {
     "L3MON4D3/LuaSnip",
-    dependencies = { "rafamadriz/friendly-snippets" },
+    branch = "master",
+    dependencies = {
+      { "rafamadriz/friendly-snippets", branch = "main" },
+    },
     config = function()
       local luasnip = require("luasnip")
 

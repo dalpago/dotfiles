@@ -1,6 +1,7 @@
 return {
   {
     "catppuccin/nvim",
+    branch = "main",
     name = "catppuccin",
     priority = 1000,
     opts = {
@@ -13,7 +14,10 @@ return {
   },
   {
     "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
+    branch = "master",
+    dependencies = {
+      { "nvim-tree/nvim-web-devicons", branch = "master" },
+    },
     opts = {
       options = {
         theme = "catppuccin-mocha",

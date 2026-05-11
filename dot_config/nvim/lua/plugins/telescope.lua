@@ -1,7 +1,10 @@
 return {
   {
     "nvim-telescope/telescope.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    branch = "master",
+    dependencies = {
+      { "nvim-lua/plenary.nvim", branch = "master" },
+    },
     opts = {
       defaults = {
         -- ripgrep used automatically when available; vimgrep_arguments controls it

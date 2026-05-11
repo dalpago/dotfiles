@@ -5,6 +5,7 @@ vim.g.vimtex_quickfix_mode = 0
 return {
   {
     "lervag/vimtex",
+    branch = "master",
     lazy = false,
   },
 }

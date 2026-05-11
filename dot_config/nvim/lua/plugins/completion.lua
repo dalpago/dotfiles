@@ -1,11 +1,12 @@
 return {
   {
     "hrsh7th/nvim-cmp",
+    branch = "main",
     dependencies = {
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-      "saadparwaiz1/cmp_luasnip",
-      "micangl/cmp-vimtex",
+      { "hrsh7th/cmp-buffer", branch = "main" },
+      { "hrsh7th/cmp-path", branch = "main" },
+      { "saadparwaiz1/cmp_luasnip", branch = "master" },
+      { "micangl/cmp-vimtex", branch = "master" },
     },
     config = function()
       local cmp = require("cmp")
