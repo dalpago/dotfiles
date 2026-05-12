@@ -163,3 +163,10 @@
 
 [includeIf "gitdir:~/Resources/Notes/"]
     path = ~/.config/git/personal.gitconfig
+
+# ~/Resources/Notes is owned by the `daniele` macOS account but worked from
+# `work`; git's repository-discovery refuses to trust mismatched-owner repos
+# unless explicitly allowed here. safe.directory is consulted at discovery
+# time (before includeIf triggers), so it lives in the top-level config.
+[safe]
+    directory = /Users/work/Resources/Notes
