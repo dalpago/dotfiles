@@ -33,13 +33,23 @@ eval "$(starship init zsh)"
 # ─────────────────────────────────────────────────────────────────────────────────
 export EDITOR="nvim"
 export LANG="en_US.UTF-8"
-# Group-writable defaults so files stay shareable across the work and daniele macOS accounts.
-umask 002
+# Scope umask 002 (group-writable defaults) to directories where cross-account
+# editing is intentional; default to 022 everywhere else. A global umask 002
+# would propagate to every child process (Claude Code, brew, vim, etc.) and
+# create group-writable files even in private paths like ~/.claude.json.
+function _umask_for_pwd() {
+    case "$PWD" in
+        "$HOME/Resources/Notes"|"$HOME/Resources/Notes/"*) umask 002 ;;
+        "$HOME/.local/share/chezmoi"|"$HOME/.local/share/chezmoi/"*) umask 002 ;;
+        *) umask 022 ;;
+    esac
+}
+chpwd_functions+=(_umask_for_pwd)
+_umask_for_pwd  # set initial umask based on the directory the shell starts in
 
-# Pin umask 022 for chezmoi invocations: it creates directories using its
-# process's umask, and group-writable runtime dirs break oh-my-zsh compinit
-# security check. The subshell scopes the umask change so cross-account
-# editing elsewhere still defaults to 664.
+# Defense-in-depth: pin umask 022 for chezmoi regardless of $PWD. Chezmoi
+# writes to $HOME (not the invoking directory), so it must not use the
+# group-writable umask that's active inside the shared trees.
 chezmoi() { (umask 022; command chezmoi "$@"); }
 if command -v bat &>/dev/null; then
     export PAGER="bat"
