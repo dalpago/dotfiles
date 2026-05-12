@@ -35,6 +35,12 @@ export EDITOR="nvim"
 export LANG="en_US.UTF-8"
 # Group-writable defaults so files stay shareable across the work and daniele macOS accounts.
 umask 002
+
+# Pin umask 022 for chezmoi invocations: it creates directories using its
+# process's umask, and group-writable runtime dirs break oh-my-zsh compinit
+# security check. The subshell scopes the umask change so cross-account
+# editing elsewhere still defaults to 664.
+chezmoi() { (umask 022; command chezmoi "$@"); }
 if command -v bat &>/dev/null; then
     export PAGER="bat"
     export MANPAGER="sh -c 'col -bx | bat -l man -p'"

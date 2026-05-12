@@ -30,6 +30,14 @@
 {
 set -euo pipefail
 
+# Pin umask so staging directory modes are deterministic. The invoking
+# shell may run with umask 002 (group-writable defaults) for cross-account
+# source-tree editing, but staging dirs are read by chezmoi to set RUNTIME
+# directory modes via apply. Group-writable runtime dirs break oh-my-zsh's
+# compinit security check and weaken every shell tool that loads code
+# from $fpath / $PATH-like vars. 022 keeps runtime dirs at standard 755.
+umask 022
+
 PUBLIC_REPO="${CHEZMOI_PUBLIC_REPO:-$HOME/.local/share/chezmoi}"
 LOCAL_OVERLAY="$PUBLIC_REPO/.local"
 STAGING="${CHEZMOI_STAGING:-$HOME/.local/share/chezmoi-staging}"
