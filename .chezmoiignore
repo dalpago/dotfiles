@@ -22,6 +22,9 @@ LICENSE
 # not a user dotfile. Must not deploy to $HOME.
 sync-staging.sh
 
+# Test harness for sync-staging.sh — run manually, not a user dotfile.
+test-sync-staging.sh
+
 # Ignore SSH private keys - these are generated per machine, not synced
 .ssh/github-personal
 .ssh/github-work
