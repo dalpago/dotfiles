@@ -13,21 +13,42 @@ repo.
 ~/.config/chezmoi/chezmoi.toml   <- machine-local config (not in any repo)
 ```
 
-A `sync-staging.sh` pre-hook runs before chezmoi reads source files. It rsyncs
-the public source into a staging directory, then overlays the private `.local/`
-on top. Chezmoi reads from staging, so it sees the merged result.
+A `sync-staging.sh` pre-hook runs before chezmoi reads source state. It
+builds the staging directory as a **symlink tree** mirroring the public
+source plus the private `.local/` overlay. Chezmoi reads through the
+symlinks to the canonical sources in each repo. This means `chezmoi edit`
+opens the canonical file in your editor (writes propagate through the
+symlink), and `chezmoi add` / `re-add` writes go via the bi-directional
+propagation phase of `sync-staging.sh` — see below.
 
 ```
-┌─────────────┐     rsync      ┌──────────────────┐     chezmoi     ┌──────┐
-│ Public repo  │───────────────>│                  │    apply        │      │
-│ (dotfiles)   │                │  Staging dir     │────────────────>│  ~/  │
-└─────────────┘                │  (merged)        │                 │      │
-┌─────────────┐     overlay    │                  │                 └──────┘
-│ Private repo │───────────────>│                  │
-│ (dotfiles-   │                └──────────────────┘
+┌──────────────┐  symlink mirror   ┌────────────────┐  chezmoi  ┌─────┐
+│ Public repo  │──────────────────>│                │   apply   │     │
+│ (dotfiles)   │                   │  Staging dir   │──────────>│  ~/ │
+└──────────────┘                   │  (symlinks to  │           │     │
+┌──────────────┐  overlay symlinks │   canonical)   │           └─────┘
+│ Private repo │──────────────────>│                │
+│ (dotfiles-   │                   └────────────────┘
 │  private)    │
-└─────────────┘
+└──────────────┘
 ```
+
+### Bi-directional source propagation
+
+`chezmoi add` and `chezmoi re-add` atomically rename files into the source
+dir, which replaces staging symlinks with regular files. The pre-hook
+detects these on the next chezmoi command and propagates them back to the
+appropriate canonical repo (private wins for paths that exist in both;
+files matching private patterns like `encrypted_*.age` won't be created
+in public). After propagation, staging is wiped and rebuilt as symlinks
+to the now-updated canonical sources.
+
+The test harness at `test-sync-staging.sh` (run with
+`bash test-sync-staging.sh`) verifies all merge scenarios — fresh build,
+re-add propagation across public/private/secrets-special-case paths,
+new-file routing, private-pattern protection, conflict resolution,
+direct-canonical-edit safety, missing-overlay bootstrap, and the
+self-modifying-script regression guard.
 
 ### What goes where
 
@@ -118,18 +139,22 @@ The age decryption key must be transferred securely to new machines:
 # 1. Install chezmoi and age
 brew install chezmoi age
 
-# 2. Initialize and apply dotfiles
+# 2. Pre-create the staging dir. chezmoi stats sourceDir before running
+#    the pre-hook on the first read, so staging must exist beforehand.
+mkdir -p ~/.local/share/chezmoi-staging
+
+# 3. Initialize and apply dotfiles
 chezmoi init --apply git@github.com:dalpago/dotfiles.git
 
-# 3. Copy the age decryption key (transfer securely from existing machine)
+# 4. Copy the age decryption key (transfer securely from existing machine)
 mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
 
-# 4. Clone private overlay (contains encrypted ~/.secrets with API keys)
+# 5. Clone private overlay (contains encrypted ~/.secrets with API keys)
 git clone git@github.com:dalpago/dotfiles-private.git \
     ~/.local/share/chezmoi/.local
 
-# 5. Re-apply to decrypt secrets and install all packages
+# 6. Re-apply to decrypt secrets and install all packages
 chezmoi apply
 
 # 6. Generate SSH keys (if not restoring from private overlay)
@@ -161,7 +186,10 @@ sudo apt update && sudo apt install -y age
 # 3. Install zsh and dependencies
 sudo apt install -y zsh git curl
 
-# 4. Initialize dotfiles
+# 4. Pre-create the staging dir (see macOS step 2 for rationale)
+mkdir -p ~/.local/share/chezmoi-staging
+
+# 5. Initialize dotfiles
 ~/.local/bin/chezmoi init --apply git@github.com:dalpago/dotfiles.git
 
 # 5. Copy age key (same as macOS step 3)
@@ -201,6 +229,43 @@ cd ~/.local/share/chezmoi && git add -A && git commit -m "Update dotfiles" && gi
 # Commit and push private changes (if any)
 cd ~/.local/share/chezmoi/.local && git add -A && git commit -m "Update private overlay" && git push
 ```
+
+`chezmoi edit` and `chezmoi re-add` both write back to the canonical source
+repos transparently. `chezmoi edit` opens the canonical file in `$EDITOR`
+via a symlink, so saves land in the right repo immediately. `chezmoi
+re-add` writes to staging (atomic-rename replaces the symlink with a
+regular file), and the next chezmoi command's pre-hook propagates the
+content back to the appropriate canonical source before rebuilding the
+symlink tree.
+
+## Cross-account dotfile editing
+
+The source repos at `~/.local/share/chezmoi/` and `~/.local/share/chezmoi/.local/`
+are configured for shared editing between the macOS `work` and `daniele`
+accounts (both members of the `staff` group):
+
+- Files: mode `664` (`rw-rw-r--`) — owner and group can write
+- Directories: mode `775` with the **setgid bit set** (`drwxrwsr-x`) — new
+  files inside inherit `staff` as their group regardless of the creating
+  user's primary group
+- Group ownership: `staff`
+- Shell `umask 002` ensures user-created files default to `664`
+
+To replicate on a fresh machine:
+
+```bash
+for repo in ~/.local/share/chezmoi ~/.local/share/chezmoi/.local; do
+    chgrp -R staff "$repo"
+    chmod -R u=rwX,g=rwX,o=rX "$repo"
+    # IMPORTANT: setgid must come AFTER chgrp — BSD chgrp clears it
+    find "$repo" -path '*/.git' -prune -o -type d -print | xargs chmod g+s
+done
+```
+
+`~/Resources/Notes/` follows the same convention (same group + setgid).
+Because the notes repo may be owned by either user, the top-level
+`.gitconfig` includes `[safe] directory = /Users/work/Resources/Notes`
+so git accepts repository discovery there from `work`.
 
 ## SSH Configuration
 
