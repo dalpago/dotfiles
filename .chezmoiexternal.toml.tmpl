@@ -56,6 +56,13 @@
         "scripts/validate-config.sh",
     ]
 
+# oh-my-tmux (gpakosz/.tmux)
+[".config/tmux/oh-my-tmux"]
+    type = "archive"
+    url = "https://github.com/gpakosz/.tmux/archive/refs/heads/master.tar.gz"
+    stripComponents = 1
+    refreshPeriod = "168h"
+
 # Private overlay externals (optional)
 {{- $localExternal := joinPath .chezmoi.sourceDir ".local/.chezmoiexternal.local.toml" -}}
 {{- if stat $localExternal }}
