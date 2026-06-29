@@ -68,9 +68,13 @@ Independent copies make group-writable shared trees unnecessary. Remove:
   - Remove the "Cross-account dotfile editing" section and its permission-replication
     snippet.
 
-The setgid bits and `staff` group already on disk become inert leftovers. Normalizing
-them is optional; if desired, a one-liner resets the chezmoi/Notes trees to default
-ownership and `umask 022` modes. This is documented but not run automatically.
+The setgid bits and `staff` group already on disk become inert leftovers. **Normalize
+them as an active step:** reset the chezmoi public repo, the private overlay, and
+`~/Resources/Notes` to default single-user ownership and `umask 022` modes — strip the
+setgid bit from directories (dirs → `755`, files → `644`), leaving `.git/` untouched.
+Provide this as a small, idempotent `normalize-perms.sh` helper under `scripts/` (run
+manually, ignored by chezmoi), and document running it once per account after the
+shared-copy machinery is removed.
 
 ### 1B. Cross-platform correctness fixes (Ubuntu)
 
@@ -118,9 +122,11 @@ account. **Decision: align to personal.**
   files (`.chezmoidata/packages.yaml`, three `dot_config/nvim/...` files). Review and
   commit these in their own focused commit(s) before refactoring, so the tree is clean.
   This is separate from the spec commit, which stages only the spec + `.chezmoiignore`.
-- **Optional `bootstrap.sh`.** A small script that pre-creates
-  `~/.local/share/chezmoi-staging` and runs `chezmoi init --apply ...` in one step,
-  retiring the documented cold-start gotcha. Low priority; include if cheap.
+- **`bootstrap.sh` (included).** A script that pre-creates
+  `~/.local/share/chezmoi-staging`, installs the chezmoi prerequisite if missing, and
+  runs `chezmoi init --apply git@github-personal:dalpago/dotfiles.git` in one step,
+  retiring the documented cold-start gotcha. Lives at repo root (ignored by chezmoi,
+  like `sync-staging.sh`); README points new machines at it. Must be safe to re-run.
 
 ---
 
