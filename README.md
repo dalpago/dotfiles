@@ -131,9 +131,20 @@ The age decryption key must be transferred securely to new machines:
 ### Prerequisites
 
 - Git installed
-- SSH key added to GitHub (for cloning via SSH)
+- An SSH key on GitHub is only needed later (for the private overlay and pushing);
+  the public dotfiles clone over HTTPS, so the bootstrap works with no key.
 
 ### macOS
+
+The fastest path is the bootstrap script — it installs chezmoi + age, pre-creates
+the staging dir, and applies the public dotfiles over HTTPS (no SSH key needed yet):
+
+```bash
+sh -c "$(curl -fsLS https://raw.githubusercontent.com/dalpago/dotfiles/master/bootstrap.sh)"
+```
+
+Then complete the secrets + identity steps below. The manual sequence (equivalent
+to what bootstrap automates in steps 1–3) is:
 
 ```bash
 # 1. Install chezmoi and age
@@ -143,62 +154,68 @@ brew install chezmoi age
 #    the pre-hook on the first read, so staging must exist beforehand.
 mkdir -p ~/.local/share/chezmoi-staging
 
-# 3. Initialize and apply dotfiles
-chezmoi init --apply git@github.com:dalpago/dotfiles.git
+# 3. Initialize and apply public dotfiles (HTTPS — no SSH key required)
+chezmoi init --apply https://github.com/dalpago/dotfiles.git
 
 # 4. Copy the age decryption key (transfer securely from existing machine)
 mkdir -p ~/.config/chezmoi
 # Paste your age key into ~/.config/chezmoi/key.txt
 
 # 5. Clone private overlay (contains encrypted ~/.secrets with API keys)
-git clone git@github.com:dalpago/dotfiles-private.git \
+git clone git@github-personal:dalpago/dotfiles-private.git \
     ~/.local/share/chezmoi/.local
 
 # 6. Re-apply to decrypt secrets and install all packages
 chezmoi apply
 
-# 6. Generate SSH keys (if not restoring from private overlay)
+# 7. Generate SSH keys (if not restoring from private overlay)
 ssh-keygen -t ed25519 -C "daniele.alpago3@gmail.com" -f ~/.ssh/github-personal
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/github-work
 ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/csi-data
 
-# 7. Add SSH keys to agent
+# 8. Add SSH keys to agent
 ssh-add ~/.ssh/github-personal
 ssh-add ~/.ssh/github-work
 
-# 8. Configure tea CLI for Forgejo (tokens from password manager)
+# 9. Configure tea CLI for Forgejo (tokens from password manager)
 tea login add --name mirus-tech --url https://git.mirus-tech.com --token "$FORGEJO_MIRUS_TOKEN" --no-version-check
 tea login add --name sgm --url http://git.sgm.internal --token "$FORGEJO_SGM_TOKEN" --no-version-check
 
-# 9. Set gh CLI to use SSH
+# 10. Set gh CLI to use SSH
 gh config set git_protocol ssh
 ```
 
-### WSL Ubuntu
+### Ubuntu (native desktop)
+
+The bootstrap script works on Debian/Ubuntu too (installs chezmoi + age, applies
+public dotfiles over HTTPS):
+
+```bash
+sh -c "$(curl -fsLS https://raw.githubusercontent.com/dalpago/dotfiles/master/bootstrap.sh)"
+```
+
+The equivalent manual sequence:
 
 ```bash
 # 1. Install chezmoi
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin
 
-# 2. Install age
-sudo apt update && sudo apt install -y age
+# 2. Install age, zsh, and dependencies
+sudo apt update && sudo apt install -y age zsh git curl
 
-# 3. Install zsh and dependencies
-sudo apt install -y zsh git curl
-
-# 4. Pre-create the staging dir (see macOS step 2 for rationale)
+# 3. Pre-create the staging dir (see macOS step 2 for rationale)
 mkdir -p ~/.local/share/chezmoi-staging
 
-# 5. Initialize dotfiles
-~/.local/bin/chezmoi init --apply git@github.com:dalpago/dotfiles.git
+# 4. Initialize public dotfiles (HTTPS — no SSH key required)
+~/.local/bin/chezmoi init --apply https://github.com/dalpago/dotfiles.git
 
-# 5. Copy age key (same as macOS step 3)
+# 5. Copy age key (same as macOS step 4)
 
 # 6. Clone private overlay
-git clone git@github.com:dalpago/dotfiles-private.git \
+git clone git@github-personal:dalpago/dotfiles-private.git \
     ~/.local/share/chezmoi/.local
 
-# 7. Re-apply
+# 7. Re-apply to decrypt secrets and install all packages
 chezmoi apply
 
 # 8. Set zsh as default shell
@@ -210,6 +227,14 @@ ssh-keygen -t ed25519 -C "dalpago@swissblock.net" -f ~/.ssh/github-work
 
 # 10. Configure tea CLI and gh (same as macOS steps 9-10)
 ```
+
+> **Caps Lock → Control** on GNOME is applied automatically by the keymap
+> `run_onchange` script (via `gsettings`) during `chezmoi apply`, provided you
+> run it inside a desktop session.
+
+> **WSL note:** under WSL the steps above still work, but keyboard remapping is
+> handled by Windows (not these dotfiles), and the WSL-specific shell aliases
+> (`explorer`, `clip`, `open`) activate automatically when `$WSL_DISTRO_NAME` is set.
 
 ## Daily Workflow
 
@@ -238,34 +263,31 @@ regular file), and the next chezmoi command's pre-hook propagates the
 content back to the appropriate canonical source before rebuilding the
 symlink tree.
 
-## Cross-account dotfile editing
+## Multiple machines and accounts
 
-The source repos at `~/.local/share/chezmoi/` and `~/.local/share/chezmoi/.local/`
-are configured for shared editing between the macOS `work` and `daniele`
-accounts (both members of the `staff` group):
-
-- Files: mode `664` (`rw-rw-r--`) — owner and group can write
-- Directories: mode `775` with the **setgid bit set** (`drwxrwsr-x`) — new
-  files inside inherit `staff` as their group regardless of the creating
-  user's primary group
-- Group ownership: `staff`
-- Shell `umask 002` ensures user-created files default to `664`
-
-To replicate on a fresh machine:
+Each machine — and each account on a shared Mac (`work`, `daniele`) — keeps its
+**own** checkout under its own `$HOME`. There is no shared live copy; accounts
+stay in sync through GitHub:
 
 ```bash
-for repo in ~/.local/share/chezmoi ~/.local/share/chezmoi/.local; do
-    chgrp -R staff "$repo"
-    chmod -R u=rwX,g=rwX,o=rX "$repo"
-    # IMPORTANT: setgid must come AFTER chgrp — BSD chgrp clears it
-    find "$repo" -path '*/.git' -prune -o -type d -print | xargs chmod g+s
-done
+# After making and pushing changes from another account/machine:
+cd ~/.local/share/chezmoi && git pull && chezmoi apply
 ```
 
-`~/Resources/Notes/` follows the same convention (same group + setgid).
-Because the notes repo may be owned by either user, the top-level
-`.gitconfig` includes `[safe] directory = /Users/work/Resources/Notes`
-so git accepts repository discovery there from `work`.
+`~/Resources/Notes` follows the same model — its own clone per account, synced
+via `git pull`.
+
+If a directory is a leftover from the old shared-editing setup (owned by another
+account, with setgid bits), claim it for the current account once:
+
+```bash
+sudo chown -R "$USER:staff" ~/Resources/Notes      # only if owned by another user
+bash ~/.local/share/chezmoi/scripts/normalize-perms.sh
+```
+
+`normalize-perms.sh` resets the source repos (and Notes, if you own it) to
+single-user modes — directories `755`, files `644`, no setgid — while preserving
+the executable bit on scripts like the `sync-staging.sh` pre-hook.
 
 ## SSH Configuration
 
@@ -303,7 +325,13 @@ git clone https://git.mirus-tech.com/org/repo-name.git
 | `.chezmoiexternal.toml.tmpl` | External git/archive dependencies |
 | `.chezmoiignore` | Files chezmoi must not manage (Claude runtime data, SSH keys) |
 | `private_dot_ssh/allowed_signers` | SSH public keys trusted for commit signature verification |
-| `.chezmoiscripts/` | Install scripts (packages, MCP servers) |
+| `.chezmoiscripts/` | Install scripts (packages, MCP servers, keymap apply) |
+| `.chezmoidata/keymap.yaml` | Single source of truth for keyboard remapping (macOS HID pairs + Linux xkb options) |
+| `Library/LaunchAgents/com.local.keyremap.plist.tmpl` | macOS `hidutil` key remap (templated from keymap.yaml) |
+| `symlink_dot_tmux.conf` | Symlinks `~/.tmux.conf` to the vendored oh-my-tmux config |
+| `dot_tmux.conf.local` | User-editable tmux overrides |
+| `scripts/normalize-perms.sh` | Resets repos to single-user permissions (run manually) |
+| `bootstrap.sh` | Cold-start: install chezmoi, apply public dotfiles over HTTPS |
 | `dot_zshrc.tmpl` | Zsh config: oh-my-zsh, starship, eza, bat, uv venv |
 | `dot_config/starship.toml` | Starship prompt with Catppuccin Mocha palette |
 | `dot_config/bat/config` | bat pager config with Catppuccin Mocha theme |
@@ -313,9 +341,11 @@ git clone https://git.mirus-tech.com/org/repo-name.git
 Chezmoi manages 100+ files including:
 
 - **Shell**: `.zshrc`, oh-my-zsh + 5 plugins, Starship prompt
-- **Git**: `.gitconfig` (SSH signing, delta pager, `osxkeychain` credential helper), `.gitignore-global`
-- **Editor/Pager**: bat (Catppuccin Mocha), eza theme
+- **Multiplexer**: tmux via oh-my-tmux (vendored external) + editable `~/.tmux.conf.local`
+- **Git**: `.gitconfig` (SSH signing, delta pager, `osxkeychain` credential helper), `.gitignore-global`; personal identity scoped to the dotfiles and notes repos via `includeIf`
+- **Editor/Pager**: Neovim (incl. markdown rendering/preview stack), bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
+- **Keyboard remapping**: single source of truth in `.chezmoidata/keymap.yaml` → a macOS `hidutil` LaunchAgent (ISO key swap + Caps→Ctrl) and GNOME `gsettings` (Caps→Ctrl) on Linux
 - **Claude Code**: via mirus-tech/claude-config git-repo external:
   - `CLAUDE.md` — global development guidelines
   - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)
