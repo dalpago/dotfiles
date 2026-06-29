@@ -13,5 +13,13 @@ if [[ -f "$PLIST" ]]; then
     launchctl load "$PLIST" 2>/dev/null || true
 fi
 {{ else if eq .chezmoi.os "linux" -}}
-# Linux handled in Task 9's gsettings block below (kept in this same script).
+# GNOME: set xkb options (Caps -> Ctrl). Needs an active session bus; skip
+# gracefully on headless/SSH applies.
+if command -v gsettings &>/dev/null && [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+    OPTS="[{{ range $i, $o := .keymap.linux_xkb_options }}{{ if $i }}, {{ end }}'{{ $o }}'{{ end }}]"
+    echo "Setting GNOME xkb-options: $OPTS"
+    gsettings set org.gnome.desktop.input-sources xkb-options "$OPTS"
+else
+    echo "gsettings/session bus unavailable — skipping xkb-options (re-run inside a desktop session)."
+fi
 {{ end -}}
