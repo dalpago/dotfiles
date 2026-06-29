@@ -1,5 +1,6 @@
 [user]
     name = Daniele Alpago
     email = daniele.alpago3@gmail.com
+    signingkey = ~/.ssh/github-personal
 [url "git@github-personal:dalpago/"]
     insteadOf = git@github.com:dalpago/

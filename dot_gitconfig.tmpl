@@ -161,12 +161,11 @@
     prune-remote = remote prune origin
     gone = "!git fetch -p && git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D"
 
-[includeIf "gitdir:~/Resources/Notes/"]
+# Personal identity + signing key for personal repos (dotfiles and notes).
+# Both repos push to github-personal; this keeps authoring and SSH-signing
+# consistent with that remote on every machine.
+[includeIf "gitdir:~/.local/share/chezmoi/"]
     path = ~/.config/git/personal.gitconfig
 
-# ~/Resources/Notes is owned by the `daniele` macOS account but worked from
-# `work`; git's repository-discovery refuses to trust mismatched-owner repos
-# unless explicitly allowed here. safe.directory is consulted at discovery
-# time (before includeIf triggers), so it lives in the top-level config.
-[safe]
-    directory = /Users/work/Resources/Notes
+[includeIf "gitdir:~/Resources/Notes/"]
+    path = ~/.config/git/personal.gitconfig
