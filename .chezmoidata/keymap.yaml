@@ -1,0 +1,11 @@
+keymap:
+  # macOS hidutil UserKeyMapping pairs (HID usage IDs, page 0x07).
+  macos_hid:
+    # ISO extra key (0x64) <-> backtick/tilde (0x35) — two-way swap.
+    - { src: "0x700000064", dst: "0x700000035" }
+    - { src: "0x700000035", dst: "0x700000064" }
+    # Caps Lock (0x39) -> Left Control (0xE0).
+    - { src: "0x700000039", dst: "0x7000000E0" }
+  # GNOME/X11 xkb options applied on Linux (Caps -> Ctrl only).
+  linux_xkb_options:
+    - "ctrl:nocaps"

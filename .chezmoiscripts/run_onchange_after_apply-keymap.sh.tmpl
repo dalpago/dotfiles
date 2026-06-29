@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# keymap.yaml hash: {{ include ".chezmoidata/keymap.yaml" | sha256sum }}
+set -euo pipefail
+
+{{ if eq .chezmoi.os "darwin" -}}
+MAPPING='{"UserKeyMapping":[{{ range $i, $p := .keymap.macos_hid }}{{ if $i }},{{ end }}{"HIDKeyboardModifierMappingSrc":{{ $p.src }},"HIDKeyboardModifierMappingDst":{{ $p.dst }}}{{ end }}]}'
+echo "Applying hidutil key mapping..."
+/usr/bin/hidutil property --set "$MAPPING" >/dev/null
+# Reload the LaunchAgent so the mapping also survives reboot.
+PLIST="$HOME/Library/LaunchAgents/com.local.keyremap.plist"
+if [[ -f "$PLIST" ]]; then
+    launchctl unload "$PLIST" 2>/dev/null || true
+    launchctl load "$PLIST" 2>/dev/null || true
+fi
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux handled in Task 9's gsettings block below (kept in this same script).
+{{ end -}}
