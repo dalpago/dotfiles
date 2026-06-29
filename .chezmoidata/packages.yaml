@@ -9,6 +9,7 @@ base:
       - gnupg
       - neovim
       - starship
+      - tmux
       - uv
       - vim
       - zoxide
@@ -24,6 +25,7 @@ base:
       - git
       - gnupg
       - neovim
+      - tmux
       - vim
       - zsh
 
@@ -58,7 +60,6 @@ categories:
         - pandoc
         - ripgrep
         - tea
-        - tmux
     debian:
       apt:
         - bat
@@ -66,7 +67,6 @@ categories:
         - htop
         - mosh
         - ripgrep
-        - tmux
     npm:
       - "@mermaid-js/mermaid-cli"
 
