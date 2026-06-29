@@ -34,8 +34,10 @@ categories:
         - git-extras
         - git-filter-repo
         - node
+        - pngpaste
         - python@3.13
         - sqlite
+        - yarn
     debian:
       apt:
         - git-extras
