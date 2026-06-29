@@ -21,6 +21,10 @@ LICENSE
 # Design/spec docs — version-controlled in this repo, not deployed to $HOME.
 docs/
 
+# Helper scripts run manually, not user dotfiles.
+scripts/
+bootstrap.sh
+
 # chezmoi pre-hook script — referenced directly from chezmoi.toml,
 # not a user dotfile. Must not deploy to $HOME.
 sync-staging.sh
