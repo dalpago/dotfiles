@@ -66,6 +66,15 @@ sudo apt update -y
 echo "Installing apt packages..."
 sudo apt install -y $(echo "$DEBIAN_APT" | tr '\n' ' ')
 
+# --- Debian command-name shims: apt ships bat as batcat, fd as fdfind ---
+mkdir -p "$HOME/.local/bin"
+if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
+    ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
+fi
+if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
+    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+fi
+
 # --- Manual installs for tools not in standard apt repos ---
 
 # zoxide
@@ -93,6 +102,16 @@ if ! command -v delta &>/dev/null; then
     curl -sSfLO "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${ARCH}.deb"
     sudo dpkg -i "git-delta_${DELTA_VERSION}_${ARCH}.deb"
     rm -f "git-delta_${DELTA_VERSION}_${ARCH}.deb"
+fi
+
+# tea (Gitea/Forgejo CLI) — not in apt; install the release binary
+if ! command -v tea &>/dev/null; then
+    echo "Installing tea (Forgejo CLI)..."
+    TEA_VERSION=$(curl -sSf https://gitea.com/api/v1/repos/gitea/tea/releases | grep -oP '"tag_name":\s*"\K[^"]+' | head -1)
+    ARCH=$(dpkg --print-architecture)
+    curl -sSfLo "$HOME/.local/bin/tea" \
+      "https://dl.gitea.com/tea/${TEA_VERSION#v}/tea-${TEA_VERSION#v}-linux-${ARCH}"
+    chmod +x "$HOME/.local/bin/tea"
 fi
 
 # age
