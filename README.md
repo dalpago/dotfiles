@@ -78,22 +78,45 @@ in zshrc.
 `.chezmoiexternal.toml.tmpl` manages:
 
 - **oh-my-zsh and plugins**: `type=archive` to avoid leaving `.git` dirs on
-  disk. Weekly refresh via `refreshPeriod = "168h"`.
-- **`~/.claude`**: `type=git-repo` from mirus-tech/claude-config with
-  `exact=false` so local-only files (settings.local.json, projects/, memory/)
-  survive `chezmoi apply`.
+  disk. Weekly refresh via `refreshPeriod = "168h"`. oh-my-zsh's own CI files
+  (`.oh-my-zsh/.github/**`) are ignored — they drift on each refresh and would
+  otherwise trigger chezmoi's "changed since last wrote it" prompt.
+- **oh-my-tmux**: `type=archive` (gpakosz/.tmux) into `~/.config/tmux/oh-my-tmux/`.
+- **`~/.claude`**: `type=git-repo` from **your own fork**
+  `git.mirus-tech.com/dalpago/claude-config` with `exact=false` so local-only
+  files (projects/, memory/, etc.) survive `chezmoi apply`.
 
-Only `settings.json`, `mcp-servers.json`, `.git/**`, and `.gitignore` are
-excluded from the external. Everything else syncs: CLAUDE.md, agents, skills,
-rules, scripts, docs, output-styles, upstream, LICENSE, README.
+### Why a fork (and how to pull upstream)
 
-- **`settings.json`** — excluded because it contains machine-local env vars
-  (`CLAUDE_CODE_EFFORT_LEVEL`, etc.) that would be overwritten on every apply.
-  Managed manually.
-- **`mcp-servers.json`** — excluded because it has hardcoded paths in the
-  upstream repo. Instead, the chezmoi setup script generates it with correct
-  paths from template data, then calls `scripts/setup-mcp-servers.sh` to merge
-  into `~/.claude.json`.
+`~/.claude` is a fork of the shared `jmz/claude-config`, **not** Joerg's repo
+directly. Owning the upstream means `chezmoi apply` only ever pulls **your**
+changes, so editing `~/.claude` no longer collides with upstream on every
+apply. Joerg's repo is wired as the `upstream` remote in the local clone; pull
+his updates **on your schedule**:
+
+```bash
+cd ~/.claude
+git fetch upstream && git merge upstream/master   # resolve once, on your terms
+git push                                           # to your fork (origin)
+```
+
+Day-to-day, commit your `~/.claude` edits and push them to your fork; the next
+`chezmoi apply` pulls them back cleanly on your other machines.
+
+The external's `exclude` list drops `.git/**`, `.gitignore`, `docs/**`, and the
+helper scripts. The two config files need care:
+
+- **`settings.json`** — your machine/Claude settings (model, theme, effort,
+  permissions, plugins). Committed to your fork so it syncs across your
+  machines. Contains no secrets.
+- **`mcp-servers.json`** — **generated locally** by `run_onchange_after_setup-mcp.sh`,
+  which injects the real API key (e.g. Context7) from `~/.secrets`. It is
+  therefore **git-rm'd and gitignored in the fork — never commit it.** On a new
+  machine the setup script regenerates it from your decrypted secrets.
+
+> Note: `~/.claude` commits are made **unsigned** (`-c commit.gpgSign=false`)
+> because the work signing key is usually locked. The dotfiles repo itself
+> auto-signs with your personal key via the `includeIf`.
 
 ## Secrets Management
 
@@ -346,7 +369,7 @@ Chezmoi manages 100+ files including:
 - **Editor/Pager**: Neovim (incl. markdown rendering/preview stack), bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
 - **Keyboard remapping**: single source of truth in `.chezmoidata/keymap.yaml` → a macOS `hidutil` LaunchAgent (ISO key swap + Caps→Ctrl) and GNOME `gsettings` (Caps→Ctrl) on Linux
-- **Claude Code**: via mirus-tech/claude-config git-repo external:
+- **Claude Code**: via your fork (`dalpago/claude-config`) git-repo external, with `jmz/claude-config` as the `upstream` remote (merge on demand):
   - `CLAUDE.md` — global development guidelines
   - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)
   - `skills/` — 17+ skills (planner, codebase-analysis, refactor, etc.)
