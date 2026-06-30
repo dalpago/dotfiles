@@ -37,10 +37,13 @@
     stripComponents = 1
     refreshPeriod = "168h"
 
-# Claude Code config from mirus-tech
+# Claude Code config — your fork of mirus-tech/jmz/claude-config.
+# You own this repo, so chezmoi only ever pulls YOUR changes (no surprise
+# conflicts). Pull Joerg's updates on your schedule from the `upstream` remote
+# configured in ~/.claude: `git fetch upstream && git merge upstream/master`.
 [".claude"]
     type = "git-repo"
-    url = "https://git.mirus-tech.com/jmz/claude-config.git"
+    url = "https://git.mirus-tech.com/dalpago/claude-config.git"
     refreshPeriod = "168h"
     exact = false
     exclude = [
