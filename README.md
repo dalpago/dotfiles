@@ -349,8 +349,8 @@ git clone https://git.mirus-tech.com/org/repo-name.git
 | `.chezmoiignore` | Files chezmoi must not manage (Claude runtime data, SSH keys) |
 | `private_dot_ssh/allowed_signers` | SSH public keys trusted for commit signature verification |
 | `.chezmoiscripts/` | Install scripts (packages, MCP servers, keymap apply) |
-| `.chezmoidata/keymap.yaml` | Single source of truth for keyboard remapping (macOS HID pairs + Linux xkb options) |
-| `Library/LaunchAgents/com.local.keyremap.plist.tmpl` | macOS `hidutil` key remap (templated from keymap.yaml) |
+| `.chezmoidata/keymap.yaml` | Linux xkb options for keyboard remapping (Caps→Ctrl); macOS remapping lives in the Karabiner config below |
+| `dot_config/karabiner/create_karabiner.json` | macOS key remap via Karabiner-Elements (Caps→Ctrl on all keyboards + built-in-only §/` swap); seeded once, Karabiner owns the file afterward |
 | `symlink_dot_tmux.conf` | Symlinks `~/.tmux.conf` to the vendored oh-my-tmux config |
 | `dot_tmux.conf.local` | User-editable tmux overrides |
 | `scripts/normalize-perms.sh` | Resets repos to single-user permissions (run manually) |
@@ -368,7 +368,7 @@ Chezmoi manages 100+ files including:
 - **Git**: `.gitconfig` (SSH signing, delta pager, `osxkeychain` credential helper), `.gitignore-global`; personal identity scoped to the dotfiles and notes repos via `includeIf`
 - **Editor/Pager**: Neovim (incl. markdown rendering/preview stack), bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
-- **Keyboard remapping**: single source of truth in `.chezmoidata/keymap.yaml` → a macOS `hidutil` LaunchAgent (ISO key swap + Caps→Ctrl) and GNOME `gsettings` (Caps→Ctrl) on Linux
+- **Keyboard remapping**: macOS via Karabiner-Elements (`dot_config/karabiner/create_karabiner.json`, seeded once — Caps→Ctrl on all keyboards + built-in-only §/` swap); Linux via GNOME `gsettings` (Caps→Ctrl), sourced from `.chezmoidata/keymap.yaml`
 - **Claude Code**: via your fork (`dalpago/claude-config`) git-repo external, with `jmz/claude-config` as the `upstream` remote (merge on demand):
   - `CLAUDE.md` — global development guidelines
   - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)

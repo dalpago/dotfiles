@@ -3,15 +3,10 @@
 set -euo pipefail
 
 {{ if eq .chezmoi.os "darwin" -}}
-MAPPING='{"UserKeyMapping":[{{ range $i, $p := .keymap.macos_hid }}{{ if $i }},{{ end }}{"HIDKeyboardModifierMappingSrc":{{ $p.src }},"HIDKeyboardModifierMappingDst":{{ $p.dst }}}{{ end }}]}'
-echo "Applying hidutil key mapping..."
-/usr/bin/hidutil property --set "$MAPPING" >/dev/null
-# Reload the LaunchAgent so the mapping also survives reboot.
-PLIST="$HOME/Library/LaunchAgents/com.local.keyremap.plist"
-if [[ -f "$PLIST" ]]; then
-    launchctl unload "$PLIST" 2>/dev/null || true
-    launchctl load "$PLIST" 2>/dev/null || true
-fi
+# macOS key remapping is handled by Karabiner-Elements, not hidutil.
+# The config is seeded once via dot_config/karabiner/create_karabiner.json
+# (Caps->Ctrl on all keyboards + section<->backtick swap on the built-in only).
+echo "macOS: key remapping handled by Karabiner-Elements — nothing to apply here."
 {{ else if eq .chezmoi.os "linux" -}}
 # GNOME: set xkb options (Caps -> Ctrl). Needs an active session bus; skip
 # gracefully on headless/SSH applies.

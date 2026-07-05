@@ -1,11 +1,11 @@
 keymap:
-  # macOS hidutil UserKeyMapping pairs (HID usage IDs, page 0x07).
-  macos_hid:
-    # ISO extra key (0x64) <-> backtick/tilde (0x35) — two-way swap.
-    - { src: "0x700000064", dst: "0x700000035" }
-    - { src: "0x700000035", dst: "0x700000064" }
-    # Caps Lock (0x39) -> Left Control (0xE0).
-    - { src: "0x700000039", dst: "0x7000000E0" }
-  # GNOME/X11 xkb options applied on Linux (Caps -> Ctrl only).
+  # Keyboard remapping is applied per-OS by
+  # .chezmoiscripts/run_onchange_after_apply-keymap.sh.tmpl:
+  #   - macOS: handled by Karabiner-Elements (config seeded via
+  #     dot_config/karabiner/create_karabiner.json). hidutil was retired
+  #     because it cannot remap the built-in keyboard per-device — see the
+  #     Karabiner config for the Caps->Ctrl + built-in-only §<->` swap rules.
+  #   - Linux: the xkb options below (Caps -> Ctrl only; the ISO §<->` swap is
+  #     Mac-specific and not applied on Linux).
   linux_xkb_options:
     - "ctrl:nocaps"

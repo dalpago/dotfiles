@@ -42,6 +42,7 @@ test-sync-staging.sh
 # macOS-only files - ignore on Linux
 {{ if ne .chezmoi.os "darwin" }}
 Library/
+.config/karabiner/
 {{ end }}
 
 # Linux-only files - ignore on macOS
