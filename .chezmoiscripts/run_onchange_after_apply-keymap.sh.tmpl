@@ -6,6 +6,17 @@ set -euo pipefail
 # macOS key remapping is handled by Karabiner-Elements, not hidutil.
 # The config is seeded once via dot_config/karabiner/create_karabiner.json
 # (Caps->Ctrl on all keyboards + section<->backtick swap on the built-in only).
+#
+# If a remap silently doesn't fire on a wireless keyboard, don't assume
+# Karabiner is broken — check in this order before touching the config:
+#   1. /var/log/karabiner/core_service.log (world-readable) for a
+#      "hid queue value monitor is started (grabbed)" line for the device.
+#   2. Which radio the keyboard is actually broadcasting on (its own
+#      Fn-shortcut/switch), independent of what's plugged into the Mac —
+#      a grabbed-but-idle receiver looks identical to a Karabiner bug.
+#   3. Whether it's actually paired: a flashing status LED usually means
+#      "searching", not "connected"; a USB hub near the receiver can
+#      prevent 2.4G pairing from ever completing.
 echo "macOS: key remapping handled by Karabiner-Elements — nothing to apply here."
 {{ else if eq .chezmoi.os "linux" -}}
 # GNOME: set xkb options (Caps -> Ctrl). Needs an active session bus; skip
