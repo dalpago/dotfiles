@@ -32,10 +32,7 @@ return {
     },
     opts = {
       ensure_installed = mason_ensure_installed,
-      -- ruff is installed here but not enabled yet; Task 3 registers its own
-      -- vim.lsp.config("ruff", {...}) (on_attach, hover disabled) before
-      -- removing this exclusion so it enables with that config, not bundled defaults.
-      automatic_enable = { exclude = { "ruff" } },
+      automatic_enable = true,
     },
     config = function(_, opts)
       vim.lsp.config("*", {
@@ -55,7 +52,28 @@ return {
         end,
       })
 
+      vim.lsp.config("ruff", {
+        on_attach = function(client, bufnr)
+          -- basedpyright stays the single hover/goto-definition authority;
+          -- without this both clients answer K and popups duplicate.
+          client.server_capabilities.hoverProvider = false
+          on_attach(client, bufnr)
+        end,
+      })
+
       require("mason-lspconfig").setup(opts)
+
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        pattern = "*.py",
+        callback = function(args)
+          vim.lsp.buf.format({
+            bufnr = args.buf,
+            filter = function(client)
+              return client.name == "ruff"
+            end,
+          })
+        end,
+      })
     end,
   },
 }
