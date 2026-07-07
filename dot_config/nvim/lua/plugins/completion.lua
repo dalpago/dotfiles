@@ -3,6 +3,7 @@ return {
     "hrsh7th/nvim-cmp",
     branch = "main",
     dependencies = {
+      { "hrsh7th/cmp-nvim-lsp", branch = "main" },
       { "hrsh7th/cmp-buffer", branch = "main" },
       { "hrsh7th/cmp-path", branch = "main" },
       { "saadparwaiz1/cmp_luasnip", branch = "master" },
@@ -42,6 +43,7 @@ return {
           ["<C-e>"] = cmp.mapping.abort(),
         }),
         sources = cmp.config.sources({
+          { name = "nvim_lsp" },
           { name = "luasnip" },
           { name = "vimtex" },
           { name = "buffer" },

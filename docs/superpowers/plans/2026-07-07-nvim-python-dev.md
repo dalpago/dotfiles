@@ -155,41 +155,44 @@ end
 
 return {
   {
-    "mason-org/mason.nvim",
-    opts = {},
-  },
-  {
     "mason-org/mason-lspconfig.nvim",
-    dependencies = { "mason-org/mason.nvim" },
+    dependencies = {
+      { "mason-org/mason.nvim", opts = {} },
+      "neovim/nvim-lspconfig",
+    },
     opts = {
       ensure_installed = mason_ensure_installed,
-      -- We call lspconfig.<server>.setup() ourselves below for full control
-      -- over on_attach/settings; automatic_enable would double-attach.
-      automatic_enable = false,
     },
-  },
-  {
-    "neovim/nvim-lspconfig",
-    dependencies = { "mason-org/mason-lspconfig.nvim" },
-    config = function()
-      local lspconfig = require("lspconfig")
-
-      lspconfig.basedpyright.setup({
+    config = function(_, opts)
+      vim.lsp.config("basedpyright", {
         on_attach = on_attach,
-        on_new_config = function(new_config, new_root_dir)
-          new_config.settings = new_config.settings or {}
-          new_config.settings.python = new_config.settings.python or {}
-          new_config.settings.python.pythonPath = python_path(new_root_dir)
+        before_init = function(_, config)
+          config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
+            python = { pythonPath = python_path(config.root_dir) },
+          })
         end,
       })
+      require("mason-lspconfig").setup(opts)
     end,
   },
 }
 ```
 
-- [ ] **Step 2: Add `nvim_lsp` to the completion sources**
+> **Note (corrected during implementation):** the plan originally specified
+> `require("lspconfig").basedpyright.setup({ on_new_config = ... })`. That API
+> is deprecated (removed in nvim-lspconfig v3.0.0) and prints a startup
+> warning; the code above is the verified modern replacement — `vim.lsp.config()`
+> plus mason-lspconfig's `automatic_enable` (default `true`), with `before_init`
+> (a core `vim.lsp.ClientConfig` field, unrelated to the deprecated framework)
+> standing in for `on_new_config`. This also collapses three top-level plugin
+> entries into one, matching mason-lspconfig's own recommended lazy.nvim layout.
 
-In `dot_config/nvim/lua/plugins/completion.lua`, replace the `sources` block (currently lines 44-49):
+- [ ] **Step 2: Add `nvim_lsp` completion support**
+
+In `dot_config/nvim/lua/plugins/completion.lua`:
+
+1. Add `{ "hrsh7th/cmp-nvim-lsp", branch = "main" }` to the existing `dependencies` list (alongside `cmp-buffer`/`cmp-path`/`cmp_luasnip`/`cmp-vimtex`) — this is the plugin that actually backs the `nvim_lsp` source name; omitting it means the source is registered nowhere and silently never completes.
+2. Replace the `sources` block (currently lines 44-49):
 
 ```lua
         sources = cmp.config.sources({
@@ -231,19 +234,23 @@ uv add requests
 printf 'import requests\n\nrequests.get\n' > example.py
 ```
 
-- [ ] **Step 5: Manually verify goto-definition resolves into the uv venv (interactive — requires a real terminal)**
+- [ ] **Step 5: Verify goto-definition resolves into the uv venv**
 
-```bash
-nvim example.py
-```
-In Neovim: place the cursor on `get` in `requests.get` and press `gd`. Expected: it jumps into a file under `.venv/lib/python*/site-packages/requests/...` — this proves `basedpyright` resolved the *project's* interpreter, not a system one. Close with `:qa`.
+Open `example.py` and jump on `requests.get` (`gd`, or in a scripted/headless
+check: wait for the `basedpyright` client to attach via
+`vim.lsp.get_clients()`, position the cursor on `get` — line 3, column 10 —
+and call `vim.lsp.buf.definition()` or
+`vim.lsp.buf_request_sync(0, "textDocument/definition", vim.lsp.util.make_position_params(0, "utf-16"), 5000)`).
+Expected: it resolves into a file under `.venv/lib/python*/site-packages/requests/...`
+— this proves `basedpyright` resolved the *project's* interpreter, not a
+system one.
 
 - [ ] **Step 6: Regression check — Markdown/LaTeX unaffected**
 
 ```bash
-nvim --headless -c "e /tmp/scratch.md" -c "lua print(vim.bo.spell)" -c "qa"
+nvim --headless -c "e /tmp/scratch.md" -c "lua print(vim.wo.spell)" -c "qa"
 ```
-Expected: `true` (notes filetype behavior from `filetypes.lua` still applies; no LSP attaches to a `.md` buffer).
+Expected: `true` (notes filetype behavior from `filetypes.lua` still applies; no LSP attaches to a `.md` buffer). Note: `spell` is a window-local option — `vim.wo.spell`, not `vim.bo.spell` (the latter raises `E5108` on Neovim 0.12).
 
 - [ ] **Step 7: Commit**
 
@@ -261,14 +268,24 @@ git commit -m "feat(nvim): add LSP (basedpyright) with uv-aware interpreter reso
 - Modify: `dot_config/nvim/lua/plugins/lsp.lua` (same file created in Task 2)
 
 **Interfaces:**
-- Consumes: the local `on_attach` function already defined at the top of `lsp.lua` (Task 2).
+- Consumes: the local `on_attach` function and the `mason-lspconfig.nvim` plugin spec's `config` function, both already defined in `lsp.lua` (Task 2, using the modern `vim.lsp.config()` API — see that task's corrected code).
 
 - [ ] **Step 1: Add ruff setup and format-on-save to `lsp.lua`**
 
-In `dot_config/nvim/lua/plugins/lsp.lua`, inside the `"neovim/nvim-lspconfig"` plugin's `config` function, after the existing `lspconfig.basedpyright.setup({...})` call, add:
+In `dot_config/nvim/lua/plugins/lsp.lua`, inside the `config` function, add a second `vim.lsp.config(...)` call **before** the `require("mason-lspconfig").setup(opts)` line, and add the format-on-save autocmd after it:
 
 ```lua
-      lspconfig.ruff.setup({
+    config = function(_, opts)
+      vim.lsp.config("basedpyright", {
+        on_attach = on_attach,
+        before_init = function(_, config)
+          config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
+            python = { pythonPath = python_path(config.root_dir) },
+          })
+        end,
+      })
+
+      vim.lsp.config("ruff", {
         on_attach = function(client, bufnr)
           -- basedpyright stays the single hover/goto-definition authority;
           -- without this both clients answer K and popups duplicate.
@@ -276,6 +293,8 @@ In `dot_config/nvim/lua/plugins/lsp.lua`, inside the `"neovim/nvim-lspconfig"` p
           on_attach(client, bufnr)
         end,
       })
+
+      require("mason-lspconfig").setup(opts)
 
       vim.api.nvim_create_autocmd("BufWritePre", {
         pattern = "*.py",
@@ -288,7 +307,10 @@ In `dot_config/nvim/lua/plugins/lsp.lua`, inside the `"neovim/nvim-lspconfig"` p
           })
         end,
       })
+    end,
 ```
+
+(The `basedpyright` block above is unchanged from Task 2 — shown again here so the whole `config` function reads as one piece. Only the `ruff` block, the `require("mason-lspconfig").setup(opts)` call, and the autocmd are new in this task.)
 
 - [ ] **Step 2: Apply and let mason install ruff**
 
