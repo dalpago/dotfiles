@@ -146,6 +146,9 @@ end
 -- uv puts a project's virtualenv at <root>/.venv; fall back to whatever
 -- python3 is on PATH for files outside a uv-managed project.
 local function python_path(root_dir)
+  if not root_dir then
+    return vim.fn.exepath("python3")
+  end
   local venv_python = root_dir .. "/.venv/bin/python3"
   if vim.fn.executable(venv_python) == 1 then
     return venv_python
@@ -159,19 +162,30 @@ return {
     dependencies = {
       { "mason-org/mason.nvim", opts = {} },
       "neovim/nvim-lspconfig",
+      { "hrsh7th/cmp-nvim-lsp", branch = "main" },
     },
     opts = {
       ensure_installed = mason_ensure_installed,
+      automatic_enable = true,
     },
     config = function(_, opts)
+      vim.lsp.config("*", {
+        capabilities = require("cmp_nvim_lsp").default_capabilities(),
+      })
+
       vim.lsp.config("basedpyright", {
         on_attach = on_attach,
+        -- Must be a real table here, not nil: before_init mutates it in
+        -- place below. Neovim snapshots config.settings into the client at
+        -- creation time, before before_init ever runs — reassigning
+        -- config.settings inside before_init would not reach that snapshot.
+        settings = {},
         before_init = function(_, config)
-          config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
-            python = { pythonPath = python_path(config.root_dir) },
-          })
+          config.settings.python = config.settings.python or {}
+          config.settings.python.pythonPath = python_path(config.root_dir)
         end,
       })
+
       require("mason-lspconfig").setup(opts)
     end,
   },
@@ -186,6 +200,10 @@ return {
 > (a core `vim.lsp.ClientConfig` field, unrelated to the deprecated framework)
 > standing in for `on_new_config`. This also collapses three top-level plugin
 > entries into one, matching mason-lspconfig's own recommended lazy.nvim layout.
+> Additionally, `config.settings` must be pre-declared as `settings = {}` (not
+> `nil`) and mutated in place via `before_init`, rather than reassigned, so
+> Neovim's snapshot of the config (which happens before `before_init` runs)
+> receives the updated values.
 
 - [ ] **Step 2: Add `nvim_lsp` completion support**
 
@@ -268,20 +286,29 @@ git commit -m "feat(nvim): add LSP (basedpyright) with uv-aware interpreter reso
 - Modify: `dot_config/nvim/lua/plugins/lsp.lua` (same file created in Task 2)
 
 **Interfaces:**
-- Consumes: the local `on_attach` function and the `mason-lspconfig.nvim` plugin spec's `config` function, both already defined in `lsp.lua` (Task 2, using the modern `vim.lsp.config()` API — see that task's corrected code).
+- Consumes: the local `on_attach` function and the `mason-lspconfig.nvim` plugin spec's `config` function, both already defined in `lsp.lua` (Task 2). Task 2 also left `opts.automatic_enable = { exclude = { "ruff" } }` specifically so ruff would not auto-attach with nvim-lspconfig's bundled defaults before this task configured it — this task removes that exclusion.
+
+> **Note:** the code below reflects `lsp.lua`'s actual current content after Task 2's review fix rounds (a settings-propagation bug was found and fixed — `before_init` now mutates `config.settings.python` in place against a pre-declared `settings = {}` table, rather than reassigning `config.settings`; a `vim.lsp.config("*", {...})` capabilities wildcard was added; `automatic_enable` gained the `exclude = { "ruff" }` this task removes). Read the current file yourself before editing — do not work from an older recollection of its shape.
 
 - [ ] **Step 1: Add ruff setup and format-on-save to `lsp.lua`**
 
-In `dot_config/nvim/lua/plugins/lsp.lua`, inside the `config` function, add a second `vim.lsp.config(...)` call **before** the `require("mason-lspconfig").setup(opts)` line, and add the format-on-save autocmd after it:
+In `dot_config/nvim/lua/plugins/lsp.lua`:
+
+1. In the `opts` table, change `automatic_enable = { exclude = { "ruff" } }` to plain `automatic_enable = true` (or remove the field entirely — `true` is the default) — now that ruff will have its own registered config, it's safe to let it auto-enable.
+2. Inside the `config` function, add a second `vim.lsp.config(...)` call for `ruff`, positioned **before** the `require("mason-lspconfig").setup(opts)` line, and add the format-on-save autocmd after it. The full function should read:
 
 ```lua
     config = function(_, opts)
+      vim.lsp.config("*", {
+        capabilities = require("cmp_nvim_lsp").default_capabilities(),
+      })
+
       vim.lsp.config("basedpyright", {
         on_attach = on_attach,
+        settings = {},
         before_init = function(_, config)
-          config.settings = vim.tbl_deep_extend("force", config.settings or {}, {
-            python = { pythonPath = python_path(config.root_dir) },
-          })
+          config.settings.python = config.settings.python or {}
+          config.settings.python.pythonPath = python_path(config.root_dir)
         end,
       })
 
@@ -310,7 +337,7 @@ In `dot_config/nvim/lua/plugins/lsp.lua`, inside the `config` function, add a se
     end,
 ```
 
-(The `basedpyright` block above is unchanged from Task 2 — shown again here so the whole `config` function reads as one piece. Only the `ruff` block, the `require("mason-lspconfig").setup(opts)` call, and the autocmd are new in this task.)
+(The `vim.lsp.config("*", ...)` and `basedpyright` blocks above are unchanged from Task 2 — shown again so the whole function reads as one piece. Only the `automatic_enable` change, the `ruff` block, and the autocmd are new in this task.)
 
 - [ ] **Step 2: Apply and let mason install ruff**
 

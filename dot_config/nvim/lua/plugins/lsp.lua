@@ -28,7 +28,7 @@ return {
     dependencies = {
       { "mason-org/mason.nvim", opts = {} },
       "neovim/nvim-lspconfig",
-      "hrsh7th/cmp-nvim-lsp",
+      { "hrsh7th/cmp-nvim-lsp", branch = "main" },
     },
     opts = {
       ensure_installed = mason_ensure_installed,
