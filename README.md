@@ -366,7 +366,7 @@ Chezmoi manages 100+ files including:
 - **Shell**: `.zshrc`, oh-my-zsh + 5 plugins, Starship prompt
 - **Multiplexer**: tmux via oh-my-tmux (vendored external) + editable `~/.tmux.conf.local`
 - **Git**: `.gitconfig` (SSH signing, delta pager, `osxkeychain` credential helper), `.gitignore-global`; personal identity scoped to the dotfiles and notes repos via `includeIf`
-- **Editor/Pager**: Neovim (incl. markdown rendering/preview stack), bat (Catppuccin Mocha), eza theme
+- **Editor/Pager**: Neovim (incl. markdown rendering/preview stack, and Python dev tooling — LSP via basedpyright+ruff with uv-aware interpreter resolution, `mini.files` project tree, format-on-save; see below), bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
 - **Keyboard remapping**: macOS via Karabiner-Elements (`dot_config/karabiner/create_karabiner.json`, seeded once — Caps→Ctrl on all keyboards + built-in-only §/` swap); Linux via GNOME `gsettings` (Caps→Ctrl), sourced from `.chezmoidata/keymap.yaml`
 - **Claude Code**: via your fork (`dalpago/claude-config`) git-repo external, with `jmz/claude-config` as the `upstream` remote (merge on demand):
@@ -378,3 +378,15 @@ Chezmoi manages 100+ files including:
   - `docs/` — architecture and integration guides
   - `upstream/` — vendored solatis/claude-config (synced via git subtree)
 - **Packages**: Homebrew (macOS) / apt (Debian) with categorized install
+
+### Neovim Python development workflow
+
+- **Project tree:** `<leader>e` opens `mini.files` at the current file.
+- **Navigate code:** `gd` jumps to a definition; `grr` (references), `grn`
+  (rename), `gri` (implementation), `gO` (document symbols), and `K` (hover)
+  are Neovim 0.12's built-in LSP defaults — no extra keymaps needed for those.
+- **Format:** Python files auto-format on save via `ruff`.
+- **Run a script:** no plugin for this — open a tmux pane (or `:terminal`) and
+  run `uv run <file>`. `uv run` resolves the project's `.venv`/dependencies
+  automatically, and also runs standalone PEP 723 scripts with zero project
+  setup.
