@@ -3,13 +3,17 @@
 -- query, vim, vimdoc. Everything else needs explicit install via
 -- nvim-treesitter (which fetches parser source AND links queries onto
 -- runtimepath at ~/.local/share/nvim/site/queries/<lang>/).
+local languages = require("config.languages")
+
 local ensure_installed = {
   "latex",
-  "python",
   "bash",
   "json",
   "yaml",
 }
+for _, lang in pairs(languages) do
+  vim.list_extend(ensure_installed, lang.treesitter or {})
+end
 
 return {
   {
