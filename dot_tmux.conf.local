@@ -387,7 +387,7 @@ tmux_conf_urlscan_options="--compact --dedupe"
 #set -g history-limit 10000
 
 # start with mouse mode enabled
-#set -g mouse on
+set -g mouse on
 
 # force Vi mode
 #   really you should export VISUAL or EDITOR environment variable, see manual
@@ -409,6 +409,12 @@ bind m run "cut -c3- '#{TMUX_CONF}' | sh -s _toggle_mouse" \; display 'mouse #{?
 
 # move status line to top
 #set -g status-position top
+
+# size each window to the smallest client *actually viewing that window*, rather
+# than the smallest client attached to the session. Lets a phone attach to a
+# grouped session (see ~/.local/bin/tmux-mobile) without shrinking the desktop
+# client's view of the same windows.
+setw -g aggressive-resize on
 
 
 # -- tpm -----------------------------------------------------------------------
