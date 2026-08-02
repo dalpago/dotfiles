@@ -67,6 +67,20 @@ Relevant existing state, verified rather than assumed:
 - **The drop-in is written before Remote Login is enabled.** Ordering matters:
   enabling first would open a window where password authentication is live.
   Written-then-enabled means `sshd` is hardened from its first connection.
+- **Host keys must be generated before validation can run.** macOS ships with
+  no `/etc/ssh/ssh_host_*` at all — key generation is deferred to the first
+  time Remote Login is enabled, which is why `ssh.plist` launches
+  `sshd-keygen-wrapper` rather than `sshd`. `sshd -t` loads host keys as part
+  of validation and exits with `no hostkeys available` without them, so
+  validate-before-enable is impossible unless keys are created first.
+  `ssh-keygen -A` creates the missing keys without starting or enabling any
+  service, preserving the ordering guarantee above.
+- **`systemsetup -setremotelogin` requires Full Disk Access** and fails from a
+  terminal that lacks it. `launchctl enable system/com.openssh.sshd` plus
+  `launchctl bootstrap` is the equivalent path and needs no special privilege.
+  It does not populate `com.apple.access_ssh`, so the `dseditgroup` call that
+  scopes access to a single user is not optional on this path — it is the only
+  thing applying the restriction.
 - **The private key is generated on the iPhone and never leaves it.** Only the
   public half reaches this machine. A lost phone costs one deleted line in
   `authorized_keys`, not rotation of the four existing outbound keys.
@@ -202,17 +216,21 @@ verified before editing, since that determines the correct chezmoi target.
 
 ## Implementation sequence
 
-1. Write the hardened drop-in while Remote Login is still off; validate with
-   `sudo sshd -t`.
-2. Enable Remote Login and scope it to `work`.
-3. **Blocking on the user:** install Termius on the iPhone, generate an ED25519
+1. Write the hardened drop-in while Remote Login is still off.
+2. Generate host keys with `ssh-keygen -A` — required before step 3 can run,
+   and exposes nothing on its own.
+3. Validate with `sudo sshd -t`; on failure, delete the drop-in and abort
+   without touching Remote Login.
+4. Enable Remote Login (`systemsetup`, falling back to `launchctl` when Full
+   Disk Access is unavailable) and scope it to `work` via `dseditgroup`.
+5. **Blocking on the user:** install Termius on the iPhone, generate an ED25519
    key, and supply the public half.
-4. Install the public key into `authorized_keys` with correct permissions.
-5. Apply the power policy.
-6. Add the tmux helper and `aggressive-resize`; route both through chezmoi.
-7. Verify end-to-end from the phone.
+6. Install the public key into `authorized_keys` with correct permissions.
+7. Apply the power policy.
+8. Add the tmux helper and `aggressive-resize`; route both through chezmoi.
+9. Verify end-to-end from the phone.
 
-Steps 1, 2, 5 and 6 are independent of step 3 and proceed in parallel with it.
+Steps 1–4, 7 and 8 are independent of step 5 and proceed in parallel with it.
 
 ## Verification
 
@@ -226,6 +244,39 @@ Steps 1, 2, 5 and 6 are independent of step 3 and proceed in parallel with it.
 - From Termius: connecting lands in `mobile-data-generation`, and the Mac's own
   view of `data-generation` retains its full width while the phone is attached.
 - `chezmoi diff` is empty after `re-add`, confirming source and target agree.
+
+### Observed on 2026-08-02
+
+Server side confirmed working. `sshd -T` reports the hardening live:
+
+```
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+allowusers work@100.64.0.0/10
+```
+
+A real client connection over the Tailscale IP negotiates
+`Authentications that can continue: publickey` and nothing else — stronger
+evidence than reading the config back, since it is the server's actual
+behaviour. `dseditgroup -o checkmember -m work com.apple.access_ssh` returns
+`yes`, and `/etc/pam.d/sshd` enforces it via
+`account required pam_sacl.so sacl_service=ssh`.
+
+Host key fingerprints, for verification on first connect from the phone:
+
+```
+ED25519  SHA256:OFlbMoZwP6Lh2jDjof+Y+PsZPBxhtO3py2u6rCM95Wg
+ECDSA    SHA256:hbMlHQRJUMfxnLMD6lRnSYhjh4nF/VwGLtcr/mgRVHc
+RSA      SHA256:Z1aBSp2V0Ejr9a2yLqTYibDMoceyAdoOlHB+PIbvGlw
+```
+
+Still outstanding: `aggressive-resize` is set in `.tmux.conf.local` but not in
+the running tmux server, which has been up since 2026-07-05. Until it is
+applied there — `tmux set-option -gw aggressive-resize on`, which changes one
+option without re-executing the config — a phone attaching to a grouped session
+will still resize the desktop client's view.
 
 ## Risks and rollback
 
