@@ -95,10 +95,18 @@ Relevant existing state, verified rather than assumed:
   `disablesleep`, which `pmset -g cap` does not list on this machine, so it is
   not reachable even by accident.
 - **The phone attaches to a grouped session, never the desktop's session.**
-  tmux sizes a shared session to its smallest attached client, so a naive
-  `tmux attach -t data-generation` from an iPhone would shrink the Mac's view to
-  phone width. `tmux new-session -t <target>` creates a session in the same
-  session group: same windows, independent size and current-window.
+  `tmux new-session -t <target>` creates a session in the same session group:
+  same windows, independent current-window, so moving around on the phone does
+  not drag the desktop client along. **It does not give independent sizing** —
+  see the 2026-08-04 revision below, which corrects an incorrect claim made
+  here originally.
+- **The grouped session must be destroyed when the phone detaches.** While a
+  session group exists, `choose-tree` (`prefix s` / `prefix w`) fails to render
+  for other attached clients, so a lingering mobile view breaks session and
+  window switching on the desktop indefinitely. A `client-detached` hook set at
+  creation confines the group to the time it is actually in use.
+  `destroy-unattached` cannot be used: setting it on a not-yet-attached session
+  destroys that session immediately.
 - **`authorized_keys` stays out of chezmoi.** It is machine-specific, and
   syncing it would propagate the phone's access to every machine in the tailnet.
   Config that *is* portable (tmux settings, the helper script) goes through
@@ -272,11 +280,42 @@ ECDSA    SHA256:hbMlHQRJUMfxnLMD6lRnSYhjh4nF/VwGLtcr/mgRVHc
 RSA      SHA256:Z1aBSp2V0Ejr9a2yLqTYibDMoceyAdoOlHB+PIbvGlw
 ```
 
-Still outstanding: `aggressive-resize` is set in `.tmux.conf.local` but not in
-the running tmux server, which has been up since 2026-07-05. Until it is
-applied there — `tmux set-option -gw aggressive-resize on`, which changes one
-option without re-executing the config — a phone attaching to a grouped session
-will still resize the desktop client's view.
+## Revision — 2026-08-04
+
+First real phone use exposed two defects in the tmux half of this design. The
+SSH half needed no changes.
+
+### `aggressive-resize` was inert, and the resize problem is not fixable
+
+`aggressive-resize` only modulates the smallest/largest computation, and
+oh-my-tmux sets `window-size latest`, which performs no such computation —
+it simply follows whichever client was most recently active. The setting was
+therefore a no-op and has been commented out with the reasoning in place.
+
+More fundamentally, **a tmux window has exactly one size.** Two clients
+displaying the same window must share it; no configuration escapes this.
+Grouped sessions buy an independent *current-window*, not independent sizing.
+The original design overstated what they provide. The remaining options are to
+view different windows on each client, to accept the resize, or to give the
+phone a fully independent ungrouped session and lose the shared view.
+
+### A lingering grouped session breaks `choose-tree`
+
+While `mobile-data-generation` existed — even detached, even with the phone
+long disconnected — `prefix s` and `prefix w` produced nothing on the desktop.
+Killing the session restored both immediately.
+
+The mode itself engages correctly: issuing `choose-tree` against a detached
+test session moves it to `in_mode=1, mode=tree-mode`. The failure is in the
+draw path for an *attached* client, which a detached test never exercises —
+an isolation test that initially produced a false negative here.
+
+Fix: `tmux-mobile` now sets a `client-detached` hook that destroys the mobile
+view as soon as the phone drops, so the group never outlives the connection.
+
+Not explained: window 1 held a size (`212x52`) matching no attached client, and
+kept it after the group was removed. Cosmetic, and separate from the
+`choose-tree` failure rather than its cause.
 
 ## Risks and rollback
 
