@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 #
-# tmux-mobile — attach to a phone-sized view of a tmux session.
+# tmux-mobile — attach to a separate view of a tmux session from a phone.
 #
-# tmux sizes a session to its smallest attached client, so attaching a phone
-# directly to a desktop session shrinks the desktop's view to phone width.
-# A grouped session (`new-session -t`) shares the target's windows but keeps
-# its own size and current-window, so each client renders at its own
-# dimensions. Paired with `aggressive-resize on` in .tmux.conf.local.
+# Uses a grouped session (`new-session -t`), which shares the target's windows
+# but keeps its own current-window, so moving around on the phone does not drag
+# the desktop client along with it.
+#
+# IMPORTANT — why the teardown hook exists:
+#   While a session group exists, `choose-tree` (prefix s / prefix w) fails to
+#   render for OTHER attached clients. A mobile view left lying around detached
+#   therefore breaks session/window switching on the desktop indefinitely.
+#   The client-detached hook destroys this view the moment the phone drops, so
+#   the group only exists while the phone is genuinely connected.
+#
+#   Note: `destroy-unattached on` cannot be used for this. Setting it on a
+#   session that is not yet attached destroys that session immediately.
 #
 # Usage: tmux-mobile [session-name]    (default: data-generation)
 
@@ -20,17 +28,19 @@ fi
 TARGET="${1:-data-generation}"
 VIEW="mobile-${TARGET}"
 
-# '=' forces an exact session-name match, so 'mobile-foo' can never
-# accidentally resolve to 'mobile-foobar' via tmux's prefix matching.
+# '=' forces exact session-name matching for has-session/attach/kill.
+# set-hook and set-option do NOT accept the '=' prefix - they take a bare name.
 
-# Reuse the mobile view if one is already open.
+# Reuse the mobile view if one is somehow still around.
 if tmux has-session -t "=${VIEW}" 2>/dev/null; then
   exec tmux attach-session -t "=${VIEW}"
 fi
 
 # Group onto the target session if it exists.
 if tmux has-session -t "=${TARGET}" 2>/dev/null; then
-  exec tmux new-session -s "${VIEW}" -t "${TARGET}"
+  tmux new-session -d -s "${VIEW}" -t "${TARGET}"
+  tmux set-hook -t "${VIEW}" client-detached "kill-session -t ${VIEW}"
+  exec tmux attach-session -t "=${VIEW}"
 fi
 
 # Target does not exist yet — start it plainly rather than failing.

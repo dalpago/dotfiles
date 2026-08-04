@@ -410,11 +410,16 @@ bind m run "cut -c3- '#{TMUX_CONF}' | sh -s _toggle_mouse" \; display 'mouse #{?
 # move status line to top
 #set -g status-position top
 
-# size each window to the smallest client *actually viewing that window*, rather
-# than the smallest client attached to the session. Lets a phone attach to a
-# grouped session (see ~/.local/bin/tmux-mobile) without shrinking the desktop
-# client's view of the same windows.
-setw -g aggressive-resize on
+# Deliberately NOT setting aggressive-resize. It looks like the fix for "a
+# phone attaching shrinks the desktop's view", but it is inert here: oh-my-tmux
+# sets `window-size latest`, and aggressive-resize only modulates the
+# smallest/largest computation, which `latest` does not perform. Verified
+# no-op on 2026-08-04.
+#
+# There is also no setting that would fix it: a tmux window has exactly ONE
+# size, so two clients displaying the SAME window must share it. Independent
+# sizing is only possible when the clients are on different windows.
+#setw -g aggressive-resize on
 
 
 # -- tpm -----------------------------------------------------------------------
