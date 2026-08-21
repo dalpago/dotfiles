@@ -126,3 +126,11 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────────
 gh-personal() { GH_TOKEN="$GH_PERSONAL_TOKEN" gh "$@"; }
 gh-work()     { GH_TOKEN="$GH_WORK_TOKEN"     gh "$@"; }
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# LaTeX: shared Notes preamble packages
+# ─────────────────────────────────────────────────────────────────────────────────
+# Make Notes/latex/*.sty (notes-article, notes-slides, notes-macros) findable
+# from any subfolder, so notes and slides can \usepackage them from anywhere.
+# Trailing ':' preserves the default TeX search trees.
+export TEXINPUTS="$HOME/Resources/Notes/latex//:$TEXINPUTS"

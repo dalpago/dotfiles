@@ -1,3 +1,9 @@
 $pdf_mode = 1;
 $pdflatex = 'pdflatex -synctex=1 -interaction=nonstopmode -file-line-error %O %S';
 $pdf_previewer = $^O eq 'darwin' ? 'open -a Skim' : 'zathura';
+
+# Make the shared Notes LaTeX packages (Notes/latex/*.sty) findable from any
+# working directory, so \usepackage{notes-article} / \usepackage{notes-slides}
+# resolve regardless of how latexmk is launched (CLI or via vimtex). The
+# trailing ':' keeps the default TeX search trees (amsmath, beamer, ...).
+$ENV{'TEXINPUTS'} = $ENV{'HOME'} . '/Resources/Notes/latex//:' . ($ENV{'TEXINPUTS'} || '');
