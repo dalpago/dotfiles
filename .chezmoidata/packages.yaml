@@ -84,7 +84,6 @@ categories:
   desktop-apps:
     darwin:
       casks:
-        - ferdium
         - libreoffice
     debian:
       apt:
