@@ -74,8 +74,7 @@ else
 
     claude mcp add --scope user --transport http \
       --header "CONTEXT7_API_KEY: ${CONTEXT7_API_KEY}" \
-      context7 \
-      -- https://mcp.context7.com/mcp
+      context7 https://mcp.context7.com/mcp
 
     echo "MCP servers configured via claude CLI"
   else
