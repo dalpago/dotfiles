@@ -82,6 +82,9 @@ in zshrc.
   (`.oh-my-zsh/.github/**`) are ignored — they drift on each refresh and would
   otherwise trigger chezmoi's "changed since last wrote it" prompt.
 - **oh-my-tmux**: `type=archive` (gpakosz/.tmux) into `~/.config/tmux/oh-my-tmux/`.
+- **MesloLGS Nerd Font** (regular + Mono): `type=archive-file` from the
+  nerd-fonts release into `~/Library/Fonts`, per user (Homebrew font casks
+  would only reach the account that ran `brew install`).
 - **`~/.claude`**: `type=git-repo` from **your own fork**
   `git.mirus-tech.com/dalpago/claude-config` with `exact=false` so local-only
   files (projects/, memory/, etc.) survive `chezmoi apply`.
@@ -347,15 +350,20 @@ git clone https://git.mirus-tech.com/org/repo-name.git
 | `.chezmoidata/packages.yaml` | All managed packages (base + categories) |
 | `.chezmoiexternal.toml.tmpl` | External git/archive dependencies |
 | `.chezmoiignore` | Files chezmoi must not manage (Claude runtime data, SSH keys) |
+| `.chezmoiremove` | Previously managed targets that `chezmoi apply` deletes (retired files) |
 | `private_dot_ssh/allowed_signers` | SSH public keys trusted for commit signature verification |
-| `.chezmoiscripts/` | Install scripts (packages, MCP servers, keymap apply) |
+| `.chezmoiscripts/` | Scripts: packages, MCP servers, keymap apply, iTerm2 default profile, Skim ↔ VimTeX sync |
 | `.chezmoidata/keymap.yaml` | Linux xkb options for keyboard remapping (Caps→Ctrl); macOS remapping lives in the Karabiner config below |
-| `dot_config/karabiner/create_karabiner.json` | macOS key remap via Karabiner-Elements (Caps→Ctrl on all keyboards + built-in-only §/` swap); seeded once, Karabiner owns the file afterward |
+| `dot_config/private_karabiner/create_private_karabiner.json` | macOS key remap via Karabiner-Elements (Caps→Ctrl on all keyboards + built-in-only §/` swap); seeded once, Karabiner owns the file afterward (`private_` because Karabiner rewrites it as 0600) |
+| `private_Library/private_Application Support/iTerm2/DynamicProfiles/dotfiles.json.tmpl` | iTerm2 profile "Dotfiles" (Catppuccin Mocha in both light and dark mode, MesloLGS NF Mono 15), made the default by a `run_onchange` script. Dynamic profiles are read-only in iTerm2's Settings UI: change a setting there, *Save Profile as JSON*, and copy the change back here (keep the `Guid`) |
+| `private_Library/` | `private_` keeps `~/Library`, `Application Support` and `Fonts` at macOS's default 0700 |
 | `symlink_dot_tmux.conf` | Symlinks `~/.tmux.conf` to the vendored oh-my-tmux config |
 | `dot_tmux.conf.local` | User-editable tmux overrides |
 | `scripts/normalize-perms.sh` | Resets repos to single-user permissions (run manually) |
 | `bootstrap.sh` | Cold-start: install chezmoi, apply public dotfiles over HTTPS |
-| `dot_zshrc.tmpl` | Zsh config: oh-my-zsh, starship, eza, bat, uv venv |
+| `dot_zshrc.tmpl` | Zsh config: oh-my-zsh, starship, eza (Catppuccin theme via `EZA_CONFIG_DIR`, `LS_COLORS` from `vivid`), bat, uv venv |
+| `dot_zprofile.tmpl` | Login-shell env: Homebrew `shellenv`, JetBrains Toolbox PATH |
+| `dot_config/nvim/lazy-lock.json` | Plugin versions pinned across accounts. After `:Lazy update`, run `chezmoi re-add ~/.config/nvim/lazy-lock.json`; elsewhere, `:Lazy restore` after `chezmoi apply` |
 | `dot_config/starship.toml` | Starship prompt with Catppuccin Mocha palette |
 | `dot_config/bat/config` | bat pager config with Catppuccin Mocha theme |
 
@@ -365,10 +373,11 @@ Chezmoi manages 100+ files including:
 
 - **Shell**: `.zshrc`, oh-my-zsh + 5 plugins, Starship prompt
 - **Multiplexer**: tmux via oh-my-tmux (vendored external) + editable `~/.tmux.conf.local`
+- **Terminal**: iTerm2 profile as a Dynamic Profile (Catppuccin Mocha, MesloLGS NF Mono) set as default; MesloLGS Nerd Font (regular + Mono) installed per user; Skim's PDF ↔ source sync for VimTeX
 - **Git**: `.gitconfig` (SSH signing, delta pager, `osxkeychain` credential helper), `.gitignore-global`; personal identity scoped to the dotfiles and notes repos via `includeIf`
 - **Editor/Pager**: Neovim (incl. markdown rendering/preview stack, and Python dev tooling — LSP via basedpyright+ruff with uv-aware interpreter resolution, `mini.files` project tree, format-on-save; see below), bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
-- **Keyboard remapping**: macOS via Karabiner-Elements (`dot_config/karabiner/create_karabiner.json`, seeded once — Caps→Ctrl on all keyboards + built-in-only §/` swap); Linux via GNOME `gsettings` (Caps→Ctrl), sourced from `.chezmoidata/keymap.yaml`
+- **Keyboard remapping**: macOS via Karabiner-Elements (`dot_config/private_karabiner/create_private_karabiner.json`, seeded once — Caps→Ctrl on all keyboards + built-in-only §/` swap); Linux via GNOME `gsettings` (Caps→Ctrl), sourced from `.chezmoidata/keymap.yaml`
 - **Claude Code**: via your fork (`dalpago/claude-config`) git-repo external, with `jmz/claude-config` as the `upstream` remote (merge on demand):
   - `CLAUDE.md` — global development guidelines
   - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)
