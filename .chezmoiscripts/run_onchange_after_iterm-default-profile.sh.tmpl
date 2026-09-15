@@ -1,0 +1,9 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+# Make the dotfiles-managed iTerm2 dynamic profile ("Dotfiles", deployed to
+# ~/Library/Application Support/iTerm2/DynamicProfiles/dotfiles.json) the
+# default profile. Dynamic profiles cannot mark themselves as default, so this
+# sets iTerm2's own preference. Takes effect the next time iTerm2 starts.
+set -euo pipefail
+defaults write com.googlecode.iterm2 "Default Bookmark Guid" -string "28EB80B6-028A-4A64-9550-8BB472100522"
+{{ end -}}

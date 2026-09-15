@@ -67,15 +67,18 @@
     refreshPeriod = "168h"
 
 # MesloLGS Nerd Font — provides the powerline/icon glyphs used by
-# dot_config/starship.toml. Installed per user rather than as a brew cask:
+# dot_config/starship.toml; the Mono variant (MesloLGSNFM) is the font of the
+# iTerm2 dynamic profile. Installed per user rather than as a brew cask:
 # Homebrew on this Mac is shared between accounts, and font casks only land in
 # ~/Library/Fonts of whichever account ran `brew install`.
 {{- if eq .chezmoi.os "darwin" }}
+{{- range $family := list "MesloLGSNerdFont" "MesloLGSNerdFontMono" }}
 {{- range list "Regular" "Bold" "Italic" "BoldItalic" }}
-["Library/Fonts/MesloLGSNerdFont-{{ . }}.ttf"]
+["Library/Fonts/{{ $family }}-{{ . }}.ttf"]
     type = "archive-file"
     url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/Meslo.tar.xz"
-    path = "MesloLGSNerdFont-{{ . }}.ttf"
+    path = "{{ $family }}-{{ . }}.ttf"
+{{- end }}
 {{- end }}
 {{- end }}
 
