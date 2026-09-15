@@ -1,0 +1,4 @@
+# Targets that used to be managed and must be deleted on `chezmoi apply`.
+
+# iPhone (Termius) remote-access helper, retired 2026-09-15.
+.local/bin/tmux-mobile
