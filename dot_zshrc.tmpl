@@ -24,6 +24,16 @@ plugins=(
 {{- end }}
 )
 
+# eza and LS_COLORS: Catppuccin Mocha. Set BEFORE oh-my-zsh, which exports its
+# own default LS_COLORS when none is set (and LS_COLORS overrides the file-type
+# colours of eza's theme). eza only reads ~/.config/eza/theme.yml when
+# EZA_CONFIG_DIR points there; on macOS it otherwise looks in
+# ~/Library/Application Support/eza.
+export EZA_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/eza"
+if command -v vivid &>/dev/null; then
+    export LS_COLORS="$(vivid generate catppuccin-mocha)"
+fi
+
 source $ZSH/oh-my-zsh.sh
 
 eval "$(starship init zsh)"

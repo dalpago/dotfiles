@@ -60,6 +60,7 @@ categories:
         - pandoc
         - ripgrep
         - tea
+        - vivid
     debian:
       apt:
         - bat
