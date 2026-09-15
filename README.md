@@ -358,7 +358,7 @@ git clone https://git.mirus-tech.com/org/repo-name.git
 | `private_Library/private_Application Support/iTerm2/DynamicProfiles/dotfiles.json.tmpl` | iTerm2 profile "Dotfiles" (Catppuccin Mocha in both light and dark mode, MesloLGS NF Mono 15), made the default by a `run_onchange` script. Dynamic profiles are read-only in iTerm2's Settings UI: change a setting there, *Save Profile as JSON*, and copy the change back here (keep the `Guid`) |
 | `private_Library/` | `private_` keeps `~/Library`, `Application Support` and `Fonts` at macOS's default 0700 |
 | `symlink_dot_tmux.conf` | Symlinks `~/.tmux.conf` to the vendored oh-my-tmux config |
-| `dot_tmux.conf.local` | User-editable tmux overrides |
+| `dot_tmux.conf.local` | User-editable tmux overrides, including oh-my-tmux's palette set to Catppuccin Mocha |
 | `scripts/normalize-perms.sh` | Resets repos to single-user permissions (run manually) |
 | `bootstrap.sh` | Cold-start: install chezmoi, apply public dotfiles over HTTPS |
 | `dot_zshrc.tmpl` | Zsh config: oh-my-zsh, starship, eza (Catppuccin theme via `EZA_CONFIG_DIR`, `LS_COLORS` from `vivid`), bat, uv venv |
