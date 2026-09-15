@@ -1,0 +1,9 @@
+{{- if eq .chezmoi.os "darwin" -}}
+# Homebrew environment (PATH, MANPATH, HOMEBREW_*) for login shells — tmux
+# panes are login shells, and .zshrc needs brew tools (vivid) before its own
+# PATH section runs.
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# Added by Toolbox App
+export PATH="$PATH:{{ .chezmoi.homeDir }}/Library/Application Support/JetBrains/Toolbox/scripts"
+{{ end -}}
