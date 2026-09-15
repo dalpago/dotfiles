@@ -1,0 +1,17 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+# Skim → Settings → Sync: VimTeX inverse search (Cmd-Shift-click in the PDF
+# jumps to the source line in the running Neovim), and reload the PDF after
+# every latexmk build. See `:help vimtex-view-skim`.
+# An empty preset is Skim's "Custom" entry.
+set -euo pipefail
+
+domain=net.sourceforge.skim-app.skim
+nvim_bin="$(command -v nvim || echo /opt/homebrew/bin/nvim)"
+
+defaults write "$domain" SKTeXEditorPreset -string ""
+defaults write "$domain" SKTeXEditorCommand -string "$nvim_bin"
+defaults write "$domain" SKTeXEditorArguments -string "--headless -c \"VimtexInverseSearch %line '%file'\""
+defaults write "$domain" SKAutoCheckFileUpdate -bool true
+defaults write "$domain" SKAutoReloadFileUpdate -bool true
+{{ end -}}
