@@ -26,6 +26,12 @@ return {
     init = function()
       vim.api.nvim_create_autocmd("FileType", {
         callback = function(ev)
+          -- VimTeX drives LaTeX syntax itself (math zones, conceal) and warns
+          -- when treesitter takes over. The latex parser stays installed for
+          -- math blocks inside markdown (render-markdown).
+          if ev.match == "tex" then
+            return
+          end
           pcall(vim.treesitter.start, ev.buf)
         end,
       })
