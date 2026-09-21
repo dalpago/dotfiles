@@ -6,6 +6,13 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ─────────────────────────────────────────────────────────────────────────────────
+# Machine/account-local hosts (e.g. the SBT work UAT box) live in
+# ~/.ssh/config.d/*.conf, which chezmoi does NOT manage — so they survive
+# `chezmoi apply` and stay OUT of this public repo. This Include must precede
+# `Host *` so a host's own IdentitiesOnly/User settings win.
+Include ~/.ssh/config.d/*.conf
+
+# ─────────────────────────────────────────────────────────────────────────────────
 # Global Defaults
 # ─────────────────────────────────────────────────────────────────────────────────
 Host *
