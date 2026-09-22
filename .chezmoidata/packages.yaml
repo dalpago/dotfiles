@@ -15,7 +15,10 @@ base:
       - zoxide
       - zsh
     casks:
-      - iterm2
+      # NOTE: auto_updates casks (e.g. iterm2, pycharm) are intentionally NOT
+      # listed here — they self-update via their own updaters, so `brew bundle`
+      # cannot manage them and keeps re-attempting a blocked upgrade every run.
+      # Update those from within each app (Check for Updates).
       - skim
 
   debian:
@@ -97,7 +100,7 @@ categories:
         - mysql-client
       casks:
         - microsoft-teams
-        - pycharm
+        # pycharm removed — auto_updates cask (self-updating); see base casks note.
     debian:
       apt:
         - texlive-latex-base
