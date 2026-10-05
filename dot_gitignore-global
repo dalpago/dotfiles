@@ -63,3 +63,5 @@ secrets.json
 .stfolder/
 .stignore
 .stversions/
+
+**/.claude/settings.local.json
