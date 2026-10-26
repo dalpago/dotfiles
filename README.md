@@ -78,7 +78,11 @@ in zshrc.
 `.chezmoiexternal.toml.tmpl` manages:
 
 - **oh-my-zsh and plugins**: `type=archive` to avoid leaving `.git` dirs on
-  disk. Weekly refresh via `refreshPeriod = "168h"`. oh-my-zsh's own CI files
+  disk. Weekly refresh via `refreshPeriod = "168h"`; force one with
+  `chezmoi apply --refresh-externals`. omz's self-updater is disabled in
+  `dot_zshrc.tmpl` — if a pre-chezmoi `install.sh` clone left
+  `~/.oh-my-zsh/.git` behind, remove it, or `omz update` will fight chezmoi
+  over the same files (autostash conflicts). oh-my-zsh's own CI files
   (`.oh-my-zsh/.github/**`) are ignored — they drift on each refresh and would
   otherwise trigger chezmoi's "changed since last wrote it" prompt.
 - **oh-my-tmux**: `type=archive` (gpakosz/.tmux) into `~/.config/tmux/oh-my-tmux/`.
