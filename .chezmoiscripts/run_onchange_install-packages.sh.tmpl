@@ -49,11 +49,20 @@ if ! command -v brew &>/dev/null; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-echo "Installing Homebrew packages..."
-brew bundle --file=/dev/stdin <<BREWEOF
+# Homebrew on this Mac is shared between accounts and owned by one of them;
+# only that owner can install or upgrade, here and for npm -g (which writes
+# into brew's prefix). Other accounts just use the tools.
+BREW_PREFIX="$(brew --prefix)"
+if [[ ! -O "$BREW_PREFIX" ]]; then
+    echo "Homebrew at $BREW_PREFIX is owned by $(stat -f %Su "$BREW_PREFIX"): skipping brew and npm -g installs; run chezmoi apply from that account."
+    SKIP_SHARED_PREFIX=1
+else
+    echo "Installing Homebrew packages..."
+    brew bundle --file=/dev/stdin <<BREWEOF
 $(echo "$DARWIN_BREWS" | while IFS= read -r pkg; do [[ -n "$pkg" ]] && echo "brew \"$pkg\""; done)
 $(echo "$DARWIN_CASKS" | while IFS= read -r pkg; do [[ -n "$pkg" ]] && echo "cask \"$pkg\""; done)
 BREWEOF
+fi
 
 {{ else if eq .osid "debian" -}}
 # ===========================================================================
@@ -151,7 +160,7 @@ fi
 # Cross-platform — npm global packages
 # ===========================================================================
 
-if command -v npm &>/dev/null; then
+if [[ -z "${SKIP_SHARED_PREFIX:-}" ]] && command -v npm &>/dev/null; then
     echo "Installing npm global packages..."
     while IFS= read -r pkg; do
         [[ -z "$pkg" ]] && continue
