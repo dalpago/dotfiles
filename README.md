@@ -374,8 +374,9 @@ Chezmoi manages 100+ files including:
 - **Keyboard remapping**: macOS via Karabiner-Elements (`dot_config/private_karabiner/create_private_karabiner.json`, seeded once — Caps→Ctrl on all keyboards + built-in-only §/` swap); Linux via GNOME `gsettings` (Caps→Ctrl), sourced from `.chezmoidata/keymap.yaml`
 - **Claude Code**: via your own repo (`dalpago/claude-config`) git-repo external:
   - `CLAUDE.md` — global development guidelines
-  - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)
-  - `skills/` — 17+ skills (planner, codebase-analysis, refactor, etc.)
+  - `agents/` — 5 agents (architect, debugger, developer, quality-reviewer, technical-writer)
+  - `skills/` — 10 skills (planner, deepthink, refactor, codebase-analysis, etc.; index in `skills/README.md`)
+  - plugins (enabled in `settings.json`): superpowers, security-guidance, claude-md-management, frontend-design
   - `rules/` — language-specific conventions (python, typescript, rust, fastapi, nextjs)
   - `scripts/` — utilities (MCP setup and validation, runtime cleanup)
   - MCP: serena (`--project-from-cwd`, follows the repo you start in) + context7
