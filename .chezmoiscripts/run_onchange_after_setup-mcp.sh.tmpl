@@ -2,6 +2,11 @@
 # Post-apply setup: generate mcp-servers.json with correct paths, then merge
 # into ~/.claude.json using the mirus-tech setup script.
 #
+# serena uses --project-from-cwd: it activates the nearest ancestor of Claude
+# Code's start directory holding .git or .serena/project.yml, so it follows the
+# repo you're in. Never register $HOME as a project (no ~/.serena/project.yml):
+# every non-repo directory would then resolve to it and index the whole home.
+#
 # Re-runs whenever the encrypted secrets blob or this script changes.
 # secrets hash: {{ include "encrypted_private_dot_secrets.age" | sha256sum }}
 
@@ -44,8 +49,7 @@ cat > "$MCP_JSON" <<MCPEOF
       "start-mcp-server",
       "--context",
       "claude-code",
-      "--project",
-      "{{ .chezmoi.homeDir }}",
+      "--project-from-cwd",
       "--open-web-dashboard",
       "false"
     ],
@@ -69,7 +73,7 @@ else
       uvx --from git+https://github.com/oraios/serena \
       serena start-mcp-server \
       --context claude-code \
-      --project {{ .chezmoi.homeDir }} \
+      --project-from-cwd \
       --open-web-dashboard False
 
     claude mcp add --scope user --transport http \

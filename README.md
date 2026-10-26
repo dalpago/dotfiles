@@ -89,29 +89,19 @@ in zshrc.
 - **MesloLGS Nerd Font** (regular + Mono): `type=archive-file` from the
   nerd-fonts release into `~/Library/Fonts`, per user (Homebrew font casks
   would only reach the account that ran `brew install`).
-- **`~/.claude`**: `type=git-repo` from **your own fork**
-  `git.mirus-tech.com/dalpago/claude-config` with `exact=false` so local-only
-  files (projects/, memory/, etc.) survive `chezmoi apply`.
+- **`~/.claude`**: `type=git-repo` from **your own repo**
+  `git.mirus-tech.com/dalpago/claude-config`, cloned as `~/.claude` itself.
+  A git-repo external is a plain `git clone`/`git pull`, so untracked
+  local-only files (projects/, memory/, etc.) survive `chezmoi apply`.
 
-### Why a fork (and how to pull upstream)
+### Maintaining `~/.claude`
 
-`~/.claude` is a fork of the shared `jmz/claude-config`, **not** Joerg's repo
-directly. Owning the upstream means `chezmoi apply` only ever pulls **your**
-changes, so editing `~/.claude` no longer collides with upstream on every
-apply. Joerg's repo is wired as the `upstream` remote in the local clone; pull
-his updates **on your schedule**:
+`~/.claude` started as a fork of `jmz/claude-config` but no longer tracks it
+(the `upstream` remote and vendored subtree were removed 2026-10-26). Edit it
+in place, commit, and push to `origin`; the next `chezmoi apply` pulls the
+changes on your other machines and accounts.
 
-```bash
-cd ~/.claude
-git fetch upstream && git merge upstream/master   # resolve once, on your terms
-git push                                           # to your fork (origin)
-```
-
-Day-to-day, commit your `~/.claude` edits and push them to your fork; the next
-`chezmoi apply` pulls them back cleanly on your other machines.
-
-The external's `exclude` list drops `.git/**`, `.gitignore`, `docs/**`, and the
-helper scripts. The two config files need care:
+The two config files need care:
 
 - **`settings.json`** — your machine/Claude settings (model, theme, effort,
   permissions, plugins). Committed to your fork so it syncs across your
@@ -382,14 +372,13 @@ Chezmoi manages 100+ files including:
 - **Editor/Pager**: Neovim (incl. markdown rendering/preview stack, and Python dev tooling — LSP via basedpyright+ruff with uv-aware interpreter resolution, `mini.files` project tree, format-on-save; see below), bat (Catppuccin Mocha), eza theme
 - **SSH**: `~/.ssh/config` (multi-account GitHub, `IdentitiesOnly yes`), `allowed_signers` for commit verification
 - **Keyboard remapping**: macOS via Karabiner-Elements (`dot_config/private_karabiner/create_private_karabiner.json`, seeded once — Caps→Ctrl on all keyboards + built-in-only §/` swap); Linux via GNOME `gsettings` (Caps→Ctrl), sourced from `.chezmoidata/keymap.yaml`
-- **Claude Code**: via your fork (`dalpago/claude-config`) git-repo external, with `jmz/claude-config` as the `upstream` remote (merge on demand):
+- **Claude Code**: via your own repo (`dalpago/claude-config`) git-repo external:
   - `CLAUDE.md` — global development guidelines
   - `agents/` — 9 agents (debugger, developer, coder, researcher, etc.)
   - `skills/` — 17+ skills (planner, codebase-analysis, refactor, etc.)
   - `rules/` — language-specific conventions (python, typescript, rust, fastapi, nextjs)
-  - `scripts/` — utilities (MCP setup, upstream sync, validation, cleanup)
-  - `docs/` — architecture and integration guides
-  - `upstream/` — vendored solatis/claude-config (synced via git subtree)
+  - `scripts/` — utilities (MCP setup and validation, runtime cleanup)
+  - MCP: serena (`--project-from-cwd`, follows the repo you start in) + context7
 - **Packages**: Homebrew (macOS) / apt (Debian) with categorized install
 
 ### Neovim Python development workflow
