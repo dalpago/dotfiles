@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-apply setup: generate mcp-servers.json with correct paths, then merge
-# into ~/.claude.json using the mirus-tech setup script.
+# into ~/.claude.json using claude-config's scripts/setup-mcp-servers.sh.
 #
 # serena uses --project-from-cwd: it activates the nearest ancestor of Claude
 # Code's start directory holding .git or .serena/project.yml, so it follows the
@@ -64,7 +64,7 @@ MCPEOF
 
 echo "Generated $MCP_JSON"
 
-# Merge into ~/.claude.json using mirus-tech script
+# Merge into ~/.claude.json using claude-config's setup script
 if [[ -x "$MCP_SCRIPT" ]] && command -v jq &>/dev/null; then
   "$MCP_SCRIPT"
 else

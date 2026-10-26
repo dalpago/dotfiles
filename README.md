@@ -90,7 +90,10 @@ in zshrc.
   nerd-fonts release into `~/Library/Fonts`, per user (Homebrew font casks
   would only reach the account that ran `brew install`).
 - **`~/.claude`**: `type=git-repo` from **your own repo**
-  `git.mirus-tech.com/dalpago/claude-config`, cloned as `~/.claude` itself.
+  `github.com/dalpago/claude-config` (private; cloned over the
+  `github-personal` SSH alias), cloned as `~/.claude` itself. chezmoi only
+  uses this URL for a fresh clone — an existing `~/.claude` keeps its own
+  `origin`, so after moving the repo run `git -C ~/.claude remote set-url origin …`.
   A git-repo external is a plain `git clone`/`git pull`, so untracked
   local-only files (projects/, memory/, etc.) survive `chezmoi apply`.
 
