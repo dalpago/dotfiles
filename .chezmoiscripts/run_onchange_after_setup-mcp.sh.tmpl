@@ -12,6 +12,10 @@
 
 set -euo pipefail
 
+# mcp-servers.json and ~/.claude.json carry the Context7 API key and home
+# directories are group-readable on this Mac: keep everything written owner-only.
+umask 077
+
 CLAUDE_DIR="{{ .chezmoi.homeDir }}/.claude"
 MCP_JSON="$CLAUDE_DIR/mcp-servers.json"
 MCP_SCRIPT="$CLAUDE_DIR/scripts/setup-mcp-servers.sh"
